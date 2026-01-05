@@ -50,6 +50,8 @@ export function LoginForm() {
     },
   });
 
+  const userType = form.watch('userType');
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     // Mock authentication
@@ -147,12 +149,14 @@ export function LoginForm() {
         </Form>
       </CardContent>
       <CardFooter className="flex-col">
-        <p className="text-sm text-muted-foreground">
-          Não tem uma conta?{' '}
-          <Link href="/register" className="text-primary hover:underline">
-            Cadastre-se
-          </Link>
-        </p>
+        {userType === 'student' && (
+            <p className="text-sm text-muted-foreground">
+            Não tem uma conta?{' '}
+            <Link href="/register" className="text-primary hover:underline">
+                Cadastre-se
+            </Link>
+            </p>
+        )}
       </CardFooter>
     </Card>
   );
