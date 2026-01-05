@@ -119,7 +119,7 @@ export function RegisterForm() {
                     <div className="relative">
                       <Input
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="********"
+                        placeholder="insira sua senha"
                         {...field}
                       />
                       <Button
@@ -147,7 +147,7 @@ export function RegisterForm() {
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="********"
+                        placeholder="confirme sua senha"
                         {...field}
                       />
                       <Button
