@@ -28,7 +28,7 @@ function CorrectionView({ essay }: { essay: Essay }) {
   return (
     <DialogContent className="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>Correção: {essay.title}</DialogTitle>
+        <DialogTitle className="text-xl">Correção: {essay.title}</DialogTitle>
         <DialogDescription>
           Feedback detalhado do professor.
         </DialogDescription>
@@ -86,7 +86,7 @@ export function StudentEssayList({ essays, onEdit }: { essays: Essay[], onEdit: 
                 <Card>
                     <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
                         <div className="space-y-1">
-                            <CardTitle>{essay.title}</CardTitle>
+                            <CardTitle className="text-xl">{essay.title}</CardTitle>
                             <CardDescription>
                                 Enviada em {format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                             </CardDescription>

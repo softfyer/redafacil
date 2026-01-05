@@ -1,8 +1,7 @@
 'use client';
 
-import { Bell, Feather, LogOut, User, Settings } from 'lucide-react';
+import { Bell, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,6 +13,7 @@ import { useState } from 'react';
 import { Badge } from '../ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Feather } from 'lucide-react';
 
 export default function AppHeader({ title }: { title: string }) {
   const avatar = PlaceHolderImages.find(img => img.id === 'user-avatar-1');
@@ -28,15 +28,16 @@ export default function AppHeader({ title }: { title: string }) {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
-      <div className="md:hidden">
-        <SidebarTrigger />
+      <div className="flex items-center gap-2 mr-auto">
+        <Feather className="w-7 h-7 text-primary" />
+        <h1 className="text-lg font-bold tracking-tighter hidden sm:block">Redação Online</h1>
+      </div>
+      
+      <div className="flex-1 text-center">
+        <h1 className="text-base font-semibold">{title}</h1>
       </div>
 
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold">{title}</h1>
-      </div>
-
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 ml-auto">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative rounded-full">

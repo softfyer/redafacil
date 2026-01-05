@@ -58,7 +58,7 @@ export default function StudentDashboard() {
     <div className="space-y-8">
       <div>
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <h2 className="text-2xl font-bold tracking-tight">Minhas Redações</h2>
+            <h2 className="text-xl font-bold tracking-tight">Minhas Redações</h2>
             <Button onClick={handleNewEssayClick}>
                 <FilePlus2 className="mr-2 h-4 w-4" />
                 Enviar Nova Redação

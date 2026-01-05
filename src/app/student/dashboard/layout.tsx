@@ -1,6 +1,4 @@
 import AppHeader from "@/components/dashboard/AppHeader";
-import AppSidebar from "@/components/dashboard/AppSidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 export default function StudentDashboardLayout({
   children,
@@ -8,14 +6,11 @@ export default function StudentDashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar userRole="student" />
-      <SidebarInset>
-        <AppHeader title="Painel do Aluno" />
-        <main className="p-4 sm:p-6 lg:p-8">
-            {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex flex-col min-h-screen">
+      <AppHeader title="Painel do Aluno" />
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          {children}
+      </main>
+    </div>
   );
 }
