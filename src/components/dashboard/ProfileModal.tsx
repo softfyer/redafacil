@@ -147,7 +147,7 @@ export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
               />
               <div className="space-y-2">
                 <Label>Senha</Label>
-                <Button type="button" variant="outline" className="w-full" onClick={() => setView('password')}>Redefinir Senha</Button>
+                <Button type="button" variant="secondary" className="w-full" onClick={() => setView('password')}>Redefinir Senha</Button>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={isLoading}>
