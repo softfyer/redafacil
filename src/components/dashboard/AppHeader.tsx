@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, User, Settings, Sun, Moon } from 'lucide-react';
+import { Bell, LogOut, User, Settings, Sun, Moon, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -40,6 +40,12 @@ export default function AppHeader({ title }: { title: string }) {
       currentNotifications.map(n => n.id === id ? { ...n, read: true } : n)
     );
   };
+  
+  const handleMarkAllAsRead = () => {
+    setNotifications(currentNotifications =>
+        currentNotifications.map(n => n.read ? n : { ...n, read: true })
+    );
+  };
 
   return (
     <>
@@ -67,7 +73,15 @@ export default function AppHeader({ title }: { title: string }) {
             <PopoverContent className="w-80" align="end">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Notificações</h4>
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium leading-none">Notificações</h4>
+                    {unreadCount > 0 && (
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={handleMarkAllAsRead}>
+                            <CheckCheck className="mr-1 h-3 w-3" />
+                            Marcar todas como lidas
+                        </Button>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Você tem {unreadCount} notificações não lidas.
                   </p>
