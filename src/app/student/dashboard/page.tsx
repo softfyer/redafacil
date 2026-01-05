@@ -13,22 +13,45 @@ export default function StudentDashboard() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [essays, setEssays] = useState<Essay[]>(mockEssays.filter(e => e.studentId === 'user-1'));
   const { toast } = useToast();
+  const [essayToEdit, setEssayToEdit] = useState<Essay | null>(null);
 
-  const handleEssaySubmit = (newEssay: Omit<Essay, 'id' | 'studentId' | 'studentName' | 'submittedAt' | 'status'>) => {
-    const essayToAdd: Essay = {
-        ...newEssay,
-        id: `essay-${Date.now()}`,
-        studentId: 'user-1',
-        studentName: 'Juliana Pereira',
-        submittedAt: new Date(),
-        status: 'submitted',
-    };
-    setEssays(prev => [essayToAdd, ...prev]);
+  const handleNewEssayClick = () => {
+    setEssayToEdit(null);
+    setIsWizardOpen(true);
+  }
+
+  const handleEditEssayClick = (essay: Essay) => {
+    setEssayToEdit(essay);
+    setIsWizardOpen(true);
+  }
+
+  const handleEssaySubmit = (newEssayData: Omit<Essay, 'id' | 'studentId' | 'studentName' | 'submittedAt' | 'status'>) => {
+    if (essayToEdit) {
+      // Handle editing
+      setEssays(prev => prev.map(e => e.id === essayToEdit.id ? { ...e, ...newEssayData, submittedAt: new Date() } : e));
+      toast({
+        title: 'Redação atualizada!',
+        description: 'Suas alterações foram salvas.',
+      });
+    } else {
+      // Handle new submission
+      const essayToAdd: Essay = {
+          ...newEssayData,
+          id: `essay-${Date.now()}`,
+          studentId: 'user-1',
+          studentName: 'Juliana Pereira',
+          submittedAt: new Date(),
+          status: 'submitted',
+      };
+      setEssays(prev => [essayToAdd, ...prev]);
+      toast({
+          title: 'Redação enviada com sucesso!',
+          description: 'Aguarde a correção do professor.',
+      });
+    }
+    
     setIsWizardOpen(false);
-    toast({
-        title: 'Redação enviada com sucesso!',
-        description: 'Aguarde a correção do professor.',
-    });
+    setEssayToEdit(null);
   }
 
   return (
@@ -36,7 +59,7 @@ export default function StudentDashboard() {
       <div>
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <h2 className="text-2xl font-bold tracking-tight">Minhas Redações</h2>
-            <Button onClick={() => setIsWizardOpen(true)}>
+            <Button onClick={handleNewEssayClick}>
                 <FilePlus2 className="mr-2 h-4 w-4" />
                 Enviar Nova Redação
             </Button>
@@ -46,12 +69,13 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      <StudentEssayList essays={essays} />
+      <StudentEssayList essays={essays} onEdit={handleEditEssayClick} />
 
       <EssaySubmissionWizard
         isOpen={isWizardOpen}
         onOpenChange={setIsWizardOpen}
         onSubmit={handleEssaySubmit}
+        essayToEdit={essayToEdit}
       />
     </div>
   );

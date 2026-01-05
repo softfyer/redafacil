@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { CreditCard, DollarSign } from 'lucide-react';
+import { CreditCard, DollarSign, Save } from 'lucide-react';
 import { ArrowLeft } from 'lucide-react';
 import type { Essay } from '@/lib/placeholder-data';
 
@@ -27,18 +27,28 @@ const formSchema = z.object({
     ),
 });
 
+const editFormSchema = formSchema.extend({
+    file: formSchema.shape.file.optional(), // File is optional when editing
+});
+
+
 type EssaySubmissionWizardProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSubmit: (newEssay: Omit<Essay, 'id' | 'studentId' | 'studentName' | 'submittedAt' | 'status'>) => void;
+  essayToEdit: Essay | null;
 };
 
-export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmit }: EssaySubmissionWizardProps) {
+export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmit, essayToEdit }: EssaySubmissionWizardProps) {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const isEditing = !!essayToEdit;
+
+  const currentSchema = isEditing ? editFormSchema : formSchema;
+
+  const form = useForm<z.infer<typeof currentSchema>>({
+    resolver: zodResolver(currentSchema),
     defaultValues: {
       title: '',
     },
@@ -46,25 +56,48 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmit }: EssayS
   
   const fileRef = form.register("file");
 
+  useEffect(() => {
+    if (essayToEdit && isOpen) {
+      form.reset({
+        title: essayToEdit.title,
+        file: undefined, // Don't pre-fill file input
+      });
+    } else if (!isOpen) {
+        form.reset();
+        setStep(1);
+    }
+  }, [essayToEdit, isOpen, form]);
+
   const handleNext = () => {
-    setStep(2);
+    if (isEditing) {
+        handleFormSubmit();
+    } else {
+        setStep(2);
+    }
   };
 
   const handleBack = () => {
     setStep(1);
   }
 
+  const handleFormSubmit = () => {
+    const values = form.getValues();
+    // In a real app, you'd handle file upload here and get a URL
+    const fileUrl = isEditing && !values.file?.[0] ? essayToEdit.fileUrl : '/placeholder-new.pdf';
+    
+    onSubmit({
+      title: values.title,
+      fileUrl: fileUrl 
+    });
+    form.reset();
+    setStep(1);
+  }
+
   const handleMockPaymentAndSubmit = () => {
     setIsLoading(true);
     setTimeout(() => {
-      const values = form.getValues();
-      onSubmit({
-        title: values.title,
-        fileUrl: '/placeholder-new.pdf' // Use a placeholder URL
-      });
+      handleFormSubmit();
       setIsLoading(false);
-      form.reset();
-      setStep(1);
     }, 1500);
   };
 
@@ -76,13 +109,18 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmit }: EssayS
     onOpenChange(open);
   }
 
+  const wizardTitle = isEditing ? "Editar Redação" : `Nova Redação (Passo ${step}/2)`;
+  const wizardDescription = isEditing
+    ? "Altere os dados da sua redação."
+    : (step === 1 ? 'Preencha os dados e anexe seu texto.' : 'Realize o pagamento para finalizar.');
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova Redação (Passo {step}/2)</DialogTitle>
+          <DialogTitle>{wizardTitle}</DialogTitle>
           <DialogDescription>
-            {step === 1 ? 'Preencha os dados e anexe seu texto.' : 'Realize o pagamento para finalizar.'}
+            {wizardDescription}
           </DialogDescription>
         </DialogHeader>
         
@@ -107,22 +145,32 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmit }: EssayS
                 name="file"
                 render={() => (
                     <FormItem>
-                    <FormLabel>Arquivo da Redação</FormLabel>
+                    <FormLabel>Arquivo da Redação {isEditing && "(Opcional)"}</FormLabel>
                     <FormControl>
                         <Input type="file" {...fileRef} />
                     </FormControl>
                     <FormMessage />
+                    <FormDescription>
+                        {isEditing ? "Anexe um novo arquivo para substituí-lo." : "Formatos aceitos: DOCX, PDF, JPG, PNG."}
+                    </FormDescription>
                     </FormItem>
                 )}
                 />
                 <DialogFooter>
-                    <Button type="submit">Próximo</Button>
+                    {isEditing ? (
+                        <Button type="submit">
+                            <Save className="mr-2 h-4 w-4" />
+                            Salvar Alterações
+                        </Button>
+                    ) : (
+                        <Button type="submit">Próximo</Button>
+                    )}
                 </DialogFooter>
             </form>
             </FormProvider>
         )}
 
-        {step === 2 && (
+        {step === 2 && !isEditing && (
           <div className="pt-4 space-y-6">
             <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
                 <div className='flex items-center gap-2'>

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, CheckCircle, Clock } from 'lucide-react';
+import { FileText, CheckCircle, Clock, FilePenLine } from 'lucide-react';
 import type { Essay } from '@/lib/placeholder-data';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -65,7 +65,7 @@ function CorrectionView({ essay }: { essay: Essay }) {
 }
 
 
-export function StudentEssayList({ essays }: { essays: Essay[] }) {
+export function StudentEssayList({ essays, onEdit }: { essays: Essay[], onEdit: (essay: Essay) => void }) {
   if (essays.length === 0) {
     return (
         <div className="text-center py-12 border-2 border-dashed rounded-lg">
@@ -80,7 +80,6 @@ export function StudentEssayList({ essays }: { essays: Essay[] }) {
   
   return (
     <div className="space-y-6">
-        <h2 className="text-2xl font-bold tracking-tight">Minhas Redações</h2>
         <div className="grid gap-6">
             {essays.map((essay) => (
             <Dialog key={essay.id}>
@@ -112,8 +111,9 @@ export function StudentEssayList({ essays }: { essays: Essay[] }) {
                                 <Button>Ver Correção</Button>
                             </DialogTrigger>
                         ) : (
-                            <Button variant="outline" disabled>
-                                Correção Pendente
+                            <Button variant="outline" onClick={() => onEdit(essay)}>
+                                <FilePenLine className="mr-2 h-4 w-4" />
+                                Editar Envio
                             </Button>
                         )}
                     </CardFooter>
