@@ -26,6 +26,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { addStudent } from '@/lib/services/studentService';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter no mínimo 2 caracteres.' }),
@@ -54,18 +57,40 @@ export function RegisterForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Mock registration
-    console.log(values);
-    setTimeout(() => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const user = userCredential.user;
+
+      await addStudent({
+        uid: user.uid,
+        name: values.name,
+        email: values.email,
+      });
+
       toast({
         title: 'Cadastro realizado com sucesso!',
         description: 'Você já pode fazer login com sua nova conta.',
       });
       router.push('/login');
+    } catch (error: any) {
+      let message = 'Ocorreu um erro ao criar a conta. Tente novamente.';
+      if (error.code === 'auth/email-already-in-use') {
+        message = 'Este email já está em uso.';
+      }
+      toast({
+        title: 'Erro no cadastro',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (

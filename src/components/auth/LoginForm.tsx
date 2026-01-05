@@ -27,6 +27,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
@@ -52,10 +54,10 @@ export function LoginForm() {
 
   const userType = form.watch('userType');
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Mock authentication
-    setTimeout(() => {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'Login bem-sucedido!',
         description: `Bem-vindo(a) de volta.`,
@@ -66,8 +68,23 @@ export function LoginForm() {
       } else {
         router.push('/teacher/dashboard');
       }
+    } catch (error: any) {
+      let message = 'Ocorreu um erro ao fazer login. Tente novamente.';
+      if (
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential'
+      ) {
+        message = 'Email ou senha inválidos.';
+      }
+      toast({
+        title: 'Erro no login',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   }
 
   return (
