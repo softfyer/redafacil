@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { TeacherEssayList } from '@/components/dashboard/teacher/TeacherEssayList';
 import { CorrectionInterface } from '@/components/dashboard/teacher/CorrectionInterface';
+import { CorrectedEssayList } from '@/components/dashboard/teacher/CorrectedEssayList';
 import { mockEssays } from '@/lib/placeholder-data';
 import type { Essay } from '@/lib/placeholder-data';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 export default function TeacherDashboard() {
   const [essays, setEssays] = useState<Essay[]>(mockEssays);
@@ -13,6 +15,7 @@ export default function TeacherDashboard() {
   const { toast } = useToast();
 
   const submittedEssays = essays.filter((e) => e.status === 'submitted');
+  const correctedEssays = essays.filter((e) => e.status === 'corrected');
 
   const handleSelectEssay = (essay: Essay) => {
     setSelectedEssay(essay);
@@ -40,7 +43,7 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       {selectedEssay ? (
         <CorrectionInterface
           essay={selectedEssay}
@@ -48,10 +51,14 @@ export default function TeacherDashboard() {
           onBack={handleBackToList}
         />
       ) : (
-        <TeacherEssayList
-          essays={submittedEssays}
-          onSelectEssay={handleSelectEssay}
-        />
+        <div className="space-y-8">
+            <TeacherEssayList
+            essays={submittedEssays}
+            onSelectEssay={handleSelectEssay}
+            />
+            <Separator />
+            <CorrectedEssayList essays={correctedEssays} />
+        </div>
       )}
     </div>
   );

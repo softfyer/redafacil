@@ -33,8 +33,10 @@ export const mockEssays: Essay[] = [
     targetExam: 'ENEM 2015',
     promptCommands: 'A partir da leitura dos textos motivadores e com base nos conhecimentos construídos ao longo de sua formação, redija texto dissertativo-argumentativo em modalidade escrita formal da língua portuguesa sobre o tema "A persistência da violência contra a mulher na sociedade brasileira", apresentando proposta de intervenção que respeite os direitos humanos. Selecione, organize e relacione, de forma coerente e coesa, argumentos e fatos para defesa de seu ponto de vista.',
     submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    status: 'submitted',
+    status: 'corrected',
     fileUrl: '/placeholder.pdf',
+    correctedFileUrl: '/placeholder-corrected.pdf',
+    textFeedback: 'O argumento está bem estruturado, mas a proposta de intervenção poderia ser mais detalhada.'
   },
   {
     id: 'essay-2',
@@ -64,6 +66,34 @@ export const mockEssays: Essay[] = [
     correctedFileUrl: '/placeholder-corrected.pdf',
     audioFeedbackUrl: '/placeholder-audio.mp3',
     textFeedback: 'Ótimo trabalho! Você demonstrou bom domínio do tema e argumentou de forma consistente. Preste atenção à concordância verbal em alguns trechos. No geral, sua redação está excelente, continue assim!'
+  },
+  {
+    id: 'essay-4',
+    studentName: 'Mariana Lima',
+    studentId: 'user-3',
+    title: 'Publicidade infantil em questão no Brasil',
+    topic: 'Publicidade infantil',
+    textType: 'dissertativo-argumentativo',
+    targetExam: 'ENEM 2014',
+    promptCommands: 'Discorra sobre a publicidade infantil no contexto brasileiro.',
+    submittedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    status: 'corrected',
+    fileUrl: '/placeholder.pdf',
+    correctedFileUrl: '/placeholder-corrected.pdf',
+    textFeedback: 'Sua tese está clara. No entanto, explore mais os exemplos para fortalecer seus argumentos.'
+  },
+  {
+    id: 'essay-5',
+    studentName: 'Rafael Costa',
+    studentId: 'user-4',
+    title: 'Manipulação do comportamento do usuário pelo controle de dados na internet',
+    topic: 'Controle de dados na internet',
+    textType: 'dissertativo-argumentativo',
+    targetExam: 'ENEM 2018',
+    promptCommands: 'Redija um texto sobre a manipulação do comportamento do usuário pelo controle de dados na internet.',
+    submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    status: 'submitted',
+    fileUrl: '/placeholder.pdf',
   },
 ];
 
