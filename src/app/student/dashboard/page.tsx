@@ -28,7 +28,7 @@ export default function StudentDashboard() {
   const handleEssaySubmit = (newEssayData: Omit<Essay, 'id' | 'studentId' | 'studentName' | 'submittedAt' | 'status'>) => {
     if (essayToEdit) {
       // Handle editing
-      setEssays(prev => prev.map(e => e.id === essayToEdit.id ? { ...e, ...newEssayData, submittedAt: new Date() } : e));
+      setEssays(prev => prev.map(e => e.id === essayToEdit.id ? { ...essayToEdit, ...newEssayData, submittedAt: new Date() } : e));
       toast({
         title: 'Redação atualizada!',
         description: 'Suas alterações foram salvas.',

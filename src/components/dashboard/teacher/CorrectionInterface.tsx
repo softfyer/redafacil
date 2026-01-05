@@ -12,6 +12,7 @@ import { AudioRecorder } from './AudioRecorder';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 type CorrectionInterfaceProps = {
   essay: Essay;
@@ -47,6 +48,13 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
     }, 1500)
   };
 
+  const textTypeMap = {
+    'dissertativo-argumentativo': 'Dissertativo-Argumentativo',
+    'carta': 'Carta',
+    'artigo-de-opiniao': 'Artigo de Opinião',
+    'outro': 'Outro'
+  }
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" onClick={onBack}>
@@ -62,6 +70,25 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Tema</p>
+                    <p className="font-semibold">{essay.topic}</p>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Vestibular/Concurso</p>
+                    <p className="font-semibold">{essay.targetExam}</p>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Tipo Textual</p>
+                    <p className="font-semibold">{textTypeMap[essay.textType]}</p>
+                </div>
+                <div className="space-y-1 col-span-1 md:col-span-2">
+                    <p className="text-sm font-medium text-muted-foreground">Comandos da Proposta</p>
+                    <p className="font-mono text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">{essay.promptCommands}</p>
+                </div>
+            </div>
+            
           <div>
             <Button asChild variant="secondary">
               <a href={essay.fileUrl} download>
@@ -70,6 +97,8 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
               </a>
             </Button>
           </div>
+
+          <Separator />
 
           <div className="space-y-2">
             <Label>Feedback por Áudio</Label>
