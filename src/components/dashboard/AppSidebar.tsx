@@ -9,7 +9,7 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Feather, LogOut } from 'lucide-react';
+import { Feather, LogOut, BookMarked, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -21,13 +21,21 @@ type NavItem = {
     label: string;
 };
 
+const studentNavItems: NavItem[] = [
+    { href: "/student/dashboard", icon: BookMarked, label: "Minhas Redações" },
+];
+
+const teacherNavItems: NavItem[] = [
+    { href: "/teacher/dashboard", icon: ListTodo, label: "Redações para Corrigir" },
+];
+
 type AppSidebarProps = {
-    navItems: NavItem[];
     userRole: 'student' | 'teacher';
 };
 
-export default function AppSidebar({ navItems, userRole }: AppSidebarProps) {
+export default function AppSidebar({ userRole }: AppSidebarProps) {
     const pathname = usePathname();
+    const navItems = userRole === 'student' ? studentNavItems : teacherNavItems;
     const avatar = PlaceHolderImages.find(img => img.id === (userRole === 'student' ? 'user-avatar-1' : 'user-avatar-2'));
     const userName = userRole === 'student' ? 'Juliana Pereira' : 'Prof. Antunes';
     const userEmail = userRole === 'student' ? 'aluno@email.com' : 'professor@email.com';
