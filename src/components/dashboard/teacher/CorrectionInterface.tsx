@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { ClientOnly } from '@/components/ui/client-only';
 
 type CorrectionInterfaceProps = {
   essay: Essay;
@@ -66,7 +67,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
         <CardHeader>
           <CardTitle>Corrigindo: {essay.title}</CardTitle>
           <CardDescription>
-            Enviada por {essay.studentName} em {format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.
+            Enviada por {essay.studentName} em <ClientOnly>{format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</ClientOnly>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

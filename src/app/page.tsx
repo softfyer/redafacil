@@ -4,6 +4,7 @@ import { CheckCircle, Feather, Award, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { ClientOnly } from '@/components/ui/client-only';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-landing');
@@ -111,7 +112,7 @@ export default function Home() {
 
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t">
         <div className="text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Redação Online. Todos os direitos reservados.
+          © <ClientOnly>{new Date().getFullYear()}</ClientOnly> Redação Online. Todos os direitos reservados.
         </div>
       </footer>
     </div>

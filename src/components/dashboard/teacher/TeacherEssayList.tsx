@@ -14,6 +14,7 @@ import type { Essay } from '@/lib/placeholder-data';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FilePenLine, Inbox } from 'lucide-react';
+import { ClientOnly } from '@/components/ui/client-only';
 
 type TeacherEssayListProps = {
   essays: Essay[];
@@ -46,7 +47,9 @@ export function TeacherEssayList({ essays, onSelectEssay }: TeacherEssayListProp
                   <TableCell className="font-medium">{essay.studentName}</TableCell>
                   <TableCell className="hidden sm:table-cell max-w-xs truncate">{essay.title}</TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {format(essay.submittedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    <ClientOnly>
+                      {format(essay.submittedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </ClientOnly>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button onClick={() => onSelectEssay(essay)} size="sm">

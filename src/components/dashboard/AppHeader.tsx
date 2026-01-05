@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Feather } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
+import { ClientOnly } from '../ui/client-only';
 
 export default function AppHeader({ title }: { title: string }) {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
@@ -82,7 +83,9 @@ export default function AppHeader({ title }: { title: string }) {
                       <div className="grid gap-1">
                         <p className="text-sm font-medium">{notification.message}</p>
                         <p className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(notification.createdAt, { addSuffix: true, locale: ptBR })}
+                          <ClientOnly>
+                            {formatDistanceToNow(notification.createdAt, { addSuffix: true, locale: ptBR })}
+                          </ClientOnly>
                         </p>
                       </div>
                     </div>

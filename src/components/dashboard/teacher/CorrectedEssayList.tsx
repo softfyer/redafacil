@@ -24,6 +24,7 @@ import type { Essay } from '@/lib/placeholder-data';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle, Search } from 'lucide-react';
+import { ClientOnly } from '@/components/ui/client-only';
 
 export function CorrectedEssayList({ essays }: { essays: Essay[] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,7 +78,9 @@ export function CorrectedEssayList({ essays }: { essays: Essay[] }) {
                 <TableCell className="font-medium">{essay.studentName}</TableCell>
                 <TableCell className="hidden sm:table-cell max-w-xs truncate">{essay.title}</TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {format(essay.submittedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  <ClientOnly>
+                    {format(essay.submittedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </ClientOnly>
                 </TableCell>
                 <TableCell className="text-right">
                   <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-green-300 dark:border-green-700">

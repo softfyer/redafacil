@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { ClientOnly } from '@/components/ui/client-only';
 
 function CorrectionView({ essay }: { essay: Essay }) {
   return (
@@ -88,7 +89,7 @@ export function StudentEssayList({ essays, onEdit }: { essays: Essay[], onEdit: 
                         <div className="space-y-1">
                             <CardTitle className="text-xl">{essay.title}</CardTitle>
                             <CardDescription>
-                                Enviada em {format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                Enviada em <ClientOnly>{format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</ClientOnly>
                             </CardDescription>
                         </div>
                         <div>
