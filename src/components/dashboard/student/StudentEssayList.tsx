@@ -1,128 +1,166 @@
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { useState } from 'react';
+import type { Essay } from '@/lib/services/essayService';
+import { deleteEssay } from '@/lib/services/essayService';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, CheckCircle, Clock, FilePenLine } from 'lucide-react';
-import type { Essay } from '@/lib/placeholder-data';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { ClientOnly } from '@/components/ui/client-only';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
-function CorrectionView({ essay }: { essay: Essay }) {
-  return (
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle className="text-xl">Correção: {essay.title}</DialogTitle>
-        <DialogDescription>
-          Feedback detalhado do professor.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
-        <div className="space-y-2">
-            <h3 className="font-semibold">Feedback por Texto</h3>
-            <p className="text-sm text-muted-foreground p-4 bg-muted rounded-md">{essay.textFeedback}</p>
-        </div>
-        
-        {essay.audioFeedbackUrl && (
-            <div className="space-y-2">
-                <h3 className="font-semibold">Feedback por Áudio</h3>
-                <audio controls className="w-full">
-                    <source src={essay.audioFeedbackUrl} type="audio/mpeg" />
-                    Seu navegador não suporta o elemento de áudio.
-                </audio>
-            </div>
-        )}
-        
-        <Separator />
+type StudentEssayListProps = {
+  essays: Essay[];
+  onEdit: (essay: Essay) => void;
+  onDeleteSuccess: () => void;
+};
 
-        <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="outline" asChild className="flex-1">
-                <a href={essay.fileUrl} download>Baixar Redação Original</a>
-            </Button>
-            <Button asChild className="flex-1">
-                <a href={essay.correctedFileUrl} download>Baixar Redação Corrigida</a>
-            </Button>
-        </div>
-      </div>
-    </DialogContent>
-  );
-}
+// Helper to format date
+const formatDate = (date: any) => {
+  if (!date) return 'Data desconhecida';
+  // Check if it's a Firestore Timestamp and convert
+  if (date.toDate) {
+    return date.toDate().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+  // Fallback for Date objects or strings
+  return new Date(date).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+};
 
+export function StudentEssayList({ essays, onEdit, onDeleteSuccess }: StudentEssayListProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store deleting essay ID
+  const { toast } = useToast();
 
-export function StudentEssayList({ essays, onEdit }: { essays: Essay[], onEdit: (essay: Essay) => void }) {
+  const handleDeleteClick = async (essay: Essay) => {
+    if (!essay.id) return; // Guard clause
+    setIsDeleting(essay.id);
+    try {
+      await deleteEssay(essay);
+      toast({
+        title: "Redação excluída!",
+        description: "Sua redação foi removida com sucesso.",
+      });
+      onDeleteSuccess(); // Callback to refetch essays
+    } catch (error) {
+      console.error("Failed to delete essay:", error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível remover a redação. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   if (essays.length === 0) {
     return (
-        <div className="text-center py-12 border-2 border-dashed rounded-lg">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">Nenhuma redação enviada</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-                Quando você enviar sua primeira redação, ela aparecerá aqui.
-            </p>
-        </div>
-    )
+      <div className="text-center py-12 px-4 border-2 border-dashed rounded-lg">
+        <h3 className="text-lg font-medium text-gray-900">Nenhuma redação enviada ainda</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Clique em "Enviar Nova Redação" para começar.
+        </p>
+      </div>
+    );
   }
+
+  const getStatusVariant = (status: Essay['status']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'corrected':
+        return 'default';
+      case 'pending':
+        return 'secondary';
+       case 'sent':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
   
+    const getStatusText = (status: Essay['status']): string => {
+    switch (status) {
+      case 'corrected':
+        return 'Corrigida';
+      case 'pending':
+        return 'Aguardando correção';
+       case 'sent':
+        return 'Enviada';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
   return (
-    <div className="space-y-6">
-        <div className="grid gap-6">
-            {essays.map((essay) => (
-            <Dialog key={essay.id}>
-                <Card>
-                    <CardHeader className="grid grid-cols-[1fr_auto] items-start gap-4 space-y-0">
-                        <div className="space-y-1">
-                            <CardTitle className="text-xl">{essay.title}</CardTitle>
-                            <CardDescription>
-                                Enviada em <ClientOnly>{format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</ClientOnly>
-                            </CardDescription>
-                        </div>
-                        <div>
-                        {essay.status === 'corrected' ? (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-green-300 dark:border-green-700">
-                                <CheckCircle className="mr-1 h-3 w-3" />
-                                Corrigida
-                            </Badge>
-                        ) : (
-                            <Badge variant="secondary">
-                                <Clock className="mr-1 h-3 w-3" />
-                                Enviada
-                            </Badge>
-                        )}
-                        </div>
-                    </CardHeader>
-                    <CardFooter>
-                        {essay.status === 'corrected' ? (
-                            <DialogTrigger asChild>
-                                <Button>Ver Correção</Button>
-                            </DialogTrigger>
-                        ) : (
-                            <Button variant="outline" onClick={() => onEdit(essay)}>
-                                <FilePenLine className="mr-2 h-4 w-4" />
-                                Editar Envio
-                            </Button>
-                        )}
-                    </CardFooter>
-                </Card>
-                {essay.status === 'corrected' && <CorrectionView essay={essay} />}
-            </Dialog>
-            ))}
-        </div>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {essays.map((essay) => (
+        <Card key={essay.id} className="flex flex-col">
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg font-bold leading-tight pr-4">{essay.title}</CardTitle>
+              <Badge variant={getStatusVariant(essay.status)}>{getStatusText(essay.status)}</Badge>
+            </div>
+            <CardDescription className="pt-1">
+              Enviada em: {formatDate(essay.submittedAt)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              <strong>Tema:</strong> {essay.topic}
+            </p>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => onEdit(essay)} disabled={isDeleting === essay.id}>
+                Ver Detalhes
+            </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={isDeleting === essay.id}>
+                  {isDeleting === essay.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a redação
+                    e o arquivo associado.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDeleteClick(essay)}>
+                    Sim, excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   );
 }
