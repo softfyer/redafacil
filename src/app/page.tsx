@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Feather, Award, UploadCloud } from 'lucide-react';
@@ -5,9 +7,41 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ClientOnly } from '@/components/ui/client-only';
+import { useRedirectIfAuthenticated } from '@/hooks/useRedirectIfAuthenticated';
+import { useUser } from '@/contexts/UserContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
+  useRedirectIfAuthenticated();
+  const { isLoading } = useUser();
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-landing');
+
+  // While checking auth state, show a loading skeleton to prevent flashes of content
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+          <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <Skeleton className="h-8 w-48" />
+              <div className="flex gap-4">
+                  <Skeleton className="h-10 w-20" />
+                  <Skeleton className="h-10 w-28" />
+              </div>
+          </header>
+          <main className="flex-1">
+              <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center">
+                  <div className="max-w-3xl mx-auto space-y-4">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-8 w-3/4 mx-auto" />
+                      <Skeleton className="h-12 w-48 mx-auto" />
+                  </div>
+              </section>
+              <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+                  <Skeleton className="aspect-[16/9] md:aspect-[2/1] rounded-2xl w-full" />
+              </section>
+          </main>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
