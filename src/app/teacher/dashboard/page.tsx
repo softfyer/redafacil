@@ -1,37 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { TeacherEssayList, Essay } from '@/components/dashboard/teacher/TeacherEssayList';
+import { useState, useEffect } from 'react';
+import { TeacherEssayList } from '@/components/dashboard/teacher/TeacherEssayList';
 import { CorrectionInterface } from '@/components/dashboard/teacher/CorrectionInterface';
 import { CorrectedEssayList } from '@/components/dashboard/teacher/CorrectedEssayList';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import type { Essay } from '@/lib/services/essayService';
 
 export default function TeacherDashboard() {
-  // State to manage which essay is currently being corrected
   const [selectedEssay, setSelectedEssay] = useState<Essay | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // State to trigger re-renders
   const { toast } = useToast();
 
-  // This function is passed to the list component to set the selected essay
   const handleSelectEssay = (essay: Essay) => {
     setSelectedEssay(essay);
   };
 
-  // This function will be called when a correction is submitted
-  const handleCorrectionSubmit = (correctedData: Partial<Essay>) => {
-    if (!selectedEssay) return;
-
-    // TODO: In a future step, this should update the essay in Firestore
-    // and then trigger a re-fetch in the list components.
-
-    setSelectedEssay(null); // Return to the list view
+  const handleCorrectionSubmit = () => {
+    // When a correction is successfully submitted, we want to refresh the lists.
     toast({
         title: 'Correção enviada!',
-        description: 'O aluno foi notificado.',
+        description: 'A redação foi marcada como corrigida e o aluno será notificado.',
     });
+    setSelectedEssay(null); // Go back to the list view
+    setRefreshKey(prevKey => prevKey + 1); // Trigger a refresh
   };
 
-  // Returns from the correction view back to the main dashboard lists
   const handleBackToList = () => {
     setSelectedEssay(null);
   }
@@ -39,28 +34,19 @@ export default function TeacherDashboard() {
   return (
     <div className="space-y-8">
       {selectedEssay ? (
-        // If an essay is selected, show the correction interface
         <CorrectionInterface
           essay={selectedEssay}
-          onCorrectionSubmit={handleCorrectionSubmit}
+          onCorrectionSubmit={handleCorrectionSubmit} // Pass the new handler
           onBack={handleBackToList}
         />
       ) : (
-        // Otherwise, show the lists of essays
-        <div className="space-y-8">
-            {/* 
-              This component now fetches its own data.
-              We just need to tell it what to do when an essay is selected.
-            */}
+        <div className="space-y-8" key={refreshKey}> {/* Use the key here */}
             <TeacherEssayList onSelectEssay={handleSelectEssay} />
             
             <Separator />
 
-            {/* 
-              This component will be implemented in a future step.
-              For now, it receives an empty array.
-            */}
-            <CorrectedEssayList essays={[]} />
+            {/* This component now fetches its own data and will refresh automatically */}
+            <CorrectedEssayList />
         </div>
       )}
     </div>

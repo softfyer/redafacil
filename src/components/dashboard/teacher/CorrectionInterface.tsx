@@ -72,20 +72,33 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             correctedFileUrl = await uploadCorrectedEssayFile(correctedFile, essay.studentId, essay.id);
         }
 
-        // 3. Submit all data to Firestore
+        // 3. Dynamically build submission data to avoid 'undefined' values
         setLoadingMessage('Finalizando correção...');
-        await submitCorrection(essay.id, {
+        const correctionData: {
+            textFeedback: string;
+            audioFeedbackUrl?: string;
+            correctedFileUrl?: string;
+        } = {
             textFeedback,
-            audioFeedbackUrl,
-            correctedFileUrl,
-        });
+        };
+
+        if (audioFeedbackUrl) {
+            correctionData.audioFeedbackUrl = audioFeedbackUrl;
+        }
+
+        if (correctedFileUrl) {
+            correctionData.correctedFileUrl = correctedFileUrl;
+        }
+
+        // 4. Submit all data to Firestore
+        await submitCorrection(essay.id, correctionData);
 
         toast({
             title: 'Correção enviada!',
             description: 'A redação foi marcada como corrigida e o aluno será notificado.',
         });
 
-        // 4. Trigger parent component to update UI
+        // 5. Trigger parent component to update UI
         onCorrectionSubmit();
 
     } catch (error: any) {
