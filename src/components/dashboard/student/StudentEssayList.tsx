@@ -4,7 +4,7 @@ import type { Essay } from '@/lib/services/essayService';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, Eye } from 'lucide-react'; // Importa o ícone de olho
 
 type StudentEssayListProps = {
   essays: Essay[];
@@ -14,7 +14,6 @@ type StudentEssayListProps = {
 // Helper to format date
 const formatDate = (date: any) => {
   if (!date) return 'Data desconhecida';
-  // Check if it's a Firestore Timestamp and convert
   if (date.toDate) {
     return date.toDate().toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -22,7 +21,6 @@ const formatDate = (date: any) => {
       year: 'numeric'
     });
   }
-  // Fallback for Date objects or strings
   return new Date(date).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
@@ -87,9 +85,19 @@ export function StudentEssayList({ essays, onEdit }: StudentEssayListProps) {
             </p>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
+            {/* Lógica condicional para o botão */}
             <Button variant="outline" size="sm" onClick={() => onEdit(essay)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar Redação
+              {essay.status === 'corrected' ? (
+                <>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Correção
+                </>
+              ) : (
+                <>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar Redação
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>

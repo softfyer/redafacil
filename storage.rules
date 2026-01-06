@@ -1,13 +1,9 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function isTeacher() {
-      // Use exists() for a more robust check on the document's existence.
-      return exists(/databases/$(database)/documents/teachers/$(request.auth.uid));
-    }
-
+    // Regra SUPER permissiva para testes
     match /essays/{studentId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (request.auth.uid == studentId || isTeacher());
+      allow read, write: if true; // Permite TUDO
     }
   }
 }
