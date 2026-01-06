@@ -4,6 +4,8 @@ import AppHeader from "@/components/dashboard/AppHeader";
 import { useUser } from "@/contexts/UserContext";
 import { VerifyEmailCard } from "@/components/auth/VerifyEmailCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function StudentDashboardLayout({
   children,
@@ -11,6 +13,15 @@ export default function StudentDashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, userRole, isLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If loading is finished and the user is not a student, redirect.
+    if (!isLoading && userRole !== 'student') {
+      router.replace('/login');
+    }
+  }, [isLoading, userRole, router]);
+
 
   // 1. Show a loading screen while user role is being determined
   if (isLoading) {
@@ -45,7 +56,15 @@ export default function StudentDashboardLayout({
     }
   }
 
-  // 4. If the user is not a student, or any other case, render nothing.
-  // The main routing logic will handle redirection.
-  return null;
+  // 4. If the user is not a student, or any other case, render a loading state
+  // or null while redirection occurs.
+  return (
+      <div className="flex flex-col min-h-screen">
+          <Skeleton className="h-16 w-full" />
+          <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-4">
+              <Skeleton className="h-8 w-1/4" />
+              <Skeleton className="h-96 w-full" />
+          </div>
+      </div>
+  );
 }

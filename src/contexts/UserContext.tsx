@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 // Define a type for the user's role
 export type UserRole = 'student' | 'teacher' | null;
@@ -23,13 +24,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const router = useRouter();
 
   // Effect for handling Firebase authentication state changes
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      // When auth state is determined, we are no longer loading the initial user
-      // but we will be loading their data next.
+      // When auth state is determined, we start the process of finding the user role.
+      // isLoading remains true until that is done.
     });
     return () => unsubscribeAuth();
   }, []);
@@ -49,25 +51,35 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const findUserRole = async () => {
       // 1. Check if the user is a student
       const studentDocRef = doc(db, 'students', user.uid);
-      const studentDoc = await getDoc(studentDocRef);
-      if (studentDoc.exists()) {
-        setUserData(studentDoc.data());
-        setUserRole('student');
-        setIsLoading(false);
-        return; // Found role, exit function
+      try {
+        const studentDoc = await getDoc(studentDocRef);
+        if (studentDoc.exists()) {
+          setUserData(studentDoc.data());
+          setUserRole('student');
+          setIsLoading(false);
+          return; // Found role, exit function
+        }
+      } catch (error) {
+        console.error("Error fetching student data:", error);
       }
+
 
       // 2. If not a student, check if the user is a teacher
       const teacherDocRef = doc(db, 'teachers', user.uid);
-      const teacherDoc = await getDoc(teacherDocRef);
-      if (teacherDoc.exists()) {
-        setUserData(teacherDoc.data());
-        setUserRole('teacher');
-        setIsLoading(false);
-        return; // Found role, exit function
+      try {
+        const teacherDoc = await getDoc(teacherDocRef);
+        if (teacherDoc.exists()) {
+          setUserData(teacherDoc.data());
+          setUserRole('teacher');
+          setIsLoading(false);
+          return; // Found role, exit function
+        }
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
       }
-
-      // 3. If user is not in students or teachers collection
+      
+      // 3. If user is not in students or teachers collection, they might be new or have an error.
+      // For this app's logic, we treat them as un-roled and not logged into a dashboard.
       setUserData(null);
       setUserRole(null);
       setIsLoading(false);

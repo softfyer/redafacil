@@ -7,7 +7,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { mockNotifications } from '@/lib/placeholder-data';
 import type { Notification } from '@/lib/placeholder-data';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Badge } from '../ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,9 +15,13 @@ import { Feather } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 import { ClientOnly } from '../ui/client-only';
 import { useUser } from '@/contexts/UserContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function AppHeader({ title }: { title: string }) {
   const { userData } = useUser();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const unreadCount = notifications.filter(n => !n.read).length;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -47,6 +50,11 @@ export default function AppHeader({ title }: { title: string }) {
     setNotifications(currentNotifications =>
         currentNotifications.map(n => n.read ? n : { ...n, read: true })
     );
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
   };
 
   const getInitials = (name: string | undefined) => {
@@ -146,11 +154,9 @@ export default function AppHeader({ title }: { title: string }) {
                   <span>Alternar Tema</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href="/">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Sair</span>
-                    </Link>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -11,9 +11,12 @@ import {
 } from '@/components/ui/sidebar';
 import { Feather, LogOut, BookMarked, ListTodo } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { usePathname, useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { useUser } from '@/contexts/UserContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { Skeleton } from '../ui/skeleton';
 
 type NavItem = {
     href: string;
@@ -35,10 +38,22 @@ type AppSidebarProps = {
 
 export default function AppSidebar({ userRole }: AppSidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { userData, isLoading } = useUser();
+
     const navItems = userRole === 'student' ? studentNavItems : teacherNavItems;
-    const avatar = PlaceHolderImages.find(img => img.id === (userRole === 'student' ? 'user-avatar-1' : 'user-avatar-2'));
-    const userName = userRole === 'student' ? 'Juliana Pereira' : 'Prof. Antunes';
-    const userEmail = userRole === 'student' ? 'aluno@email.com' : 'professor@email.com';
+
+    const handleLogout = async () => {
+        await signOut(auth);
+        router.push('/login');
+    };
+
+    const getInitials = (name: string | undefined) => {
+        if (!name) return '';
+        const nameParts = name.split(' ');
+        const initials = nameParts.map(part => part.charAt(0)).join('');
+        return initials.toUpperCase();
+    };
 
     return (
         <Sidebar>
@@ -63,19 +78,28 @@ export default function AppSidebar({ userRole }: AppSidebarProps) {
                 </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
-                <div className="flex items-center gap-3 p-2 rounded-md bg-muted/50">
-                    <Avatar className="h-9 w-9">
-                        {avatar && <AvatarImage src={avatar.imageUrl} alt="User avatar" data-ai-hint={avatar.imageHint} />}
-                        <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-medium truncate">{userName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+                {isLoading ? (
+                    <div className="flex items-center gap-3 p-2">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <div className="flex-1 space-y-1">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
                     </div>
-                    <Link href="/" passHref>
-                        <LogOut className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-                    </Link>
-                </div>
+                ) : (
+                    <div className="flex items-center gap-3 p-2 rounded-md bg-muted/50">
+                        <Avatar className="h-9 w-9">
+                            <AvatarFallback>{getInitials(userData?.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="text-sm font-medium truncate">{userData?.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{userData?.email}</p>
+                        </div>
+                        <button onClick={handleLogout} className="focus:outline-none">
+                             <LogOut className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                        </button>
+                    </div>
+                )}
             </SidebarFooter>
         </Sidebar>
     );
