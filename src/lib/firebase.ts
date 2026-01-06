@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyChYQcSfp_y7WIJbtQ32GQnAm29K-Mpc0I",
   authDomain: "redafcil.firebaseapp.com",
   projectId: "redafcil",
-  storageBucket: "redafcil.firebasestorage.app", // Corrigido para o valor original e correto
+  storageBucket: "redafcil.firebasestorage.app",
   messagingSenderId: "905264553510",
   appId: "1:905264553510:web:8fa05b7abcaadc07f590e7"
 };

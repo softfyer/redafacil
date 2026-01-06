@@ -2,8 +2,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function isTeacher() {
-      // Usando a função path() para construir o caminho do documento de forma explícita.
-      return get(path('/databases/(default)/documents/teachers/' + request.auth.uid)) != null;
+      // Use exists() for a more robust check on the document's existence.
+      return exists(/databases/$(database)/documents/teachers/$(request.auth.uid));
     }
 
     match /essays/{studentId}/{allPaths=**} {
