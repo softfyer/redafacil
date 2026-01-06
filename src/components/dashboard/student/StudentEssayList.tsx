@@ -88,7 +88,7 @@ export function StudentEssayList({ essays, onEdit, onDeleteSuccess }: StudentEss
         return 'default';
       case 'pending':
         return 'secondary';
-       case 'sent':
+       case 'a corrigir':
         return 'outline';
       default:
         return 'secondary';
@@ -101,7 +101,7 @@ export function StudentEssayList({ essays, onEdit, onDeleteSuccess }: StudentEss
         return 'Corrigida';
       case 'pending':
         return 'Aguardando correção';
-       case 'sent':
+       case 'a corrigir':
         return 'Enviada';
       default:
         return 'Desconhecido';
