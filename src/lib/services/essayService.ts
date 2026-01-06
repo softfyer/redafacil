@@ -1,6 +1,6 @@
 'use client';
 
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import {
   collection,
   addDoc,
@@ -13,7 +13,7 @@ import {
   updateDoc,
   writeBatch
 } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
+import { deleteFileByUrl } from './storageService'; // Import from storageService
 
 // Based on src/lib/placeholder-data.ts
 export interface Essay {
@@ -32,26 +32,6 @@ export interface Essay {
   textFeedback?: string;
   correctedAt?: any; // Timestamp for when the correction was submitted
 }
-
-/**
- * Deletes a file from Firebase Storage based on its URL.
- * @param fileUrl The URL of the file to delete.
- */
-export const deleteFileByUrl = async (fileUrl: string) => {
-  if (!fileUrl) return;
-  try {
-    const fileRef = ref(storage, fileUrl);
-    await deleteObject(fileRef);
-    console.log(`Successfully deleted file: ${fileUrl}`);
-  } catch (error: any) {
-    if (error.code === 'storage/object-not-found') {
-      console.warn(`File not found, could not delete: ${fileUrl}`);
-    } else {
-      console.error(`Error deleting file: ${fileUrl}`, error);
-      throw new Error('Failed to delete existing file.');
-    }
-  }
-};
 
 /**
  * Adds a new essay to the root "essays" collection.

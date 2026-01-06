@@ -1,8 +1,29 @@
 'use client';
 
 import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Deletes a file from Firebase Storage based on its URL.
+ * @param fileUrl The URL of the file to delete.
+ */
+export const deleteFileByUrl = async (fileUrl: string) => {
+  if (!fileUrl) return;
+  try {
+    const fileRef = ref(storage, fileUrl);
+    await deleteObject(fileRef);
+    console.log(`Successfully deleted file: ${fileUrl}`);
+  } catch (error: any) {
+    if (error.code === 'storage/object-not-found') {
+      console.warn(`File not found, could not delete: ${fileUrl}`);
+    } else {
+      console.error(`Error deleting file: ${fileUrl}`, error);
+      throw new Error('Failed to delete existing file.');
+    }
+  }
+};
+
 
 /**
  * Uploads an original essay file to a specified path in Firebase Storage.

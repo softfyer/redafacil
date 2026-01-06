@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isTeacher() {
+      // Usando a função path() para construir o caminho do documento de forma explícita.
+      return get(path('/databases/(default)/documents/teachers/' + request.auth.uid)) != null;
+    }
+
+    match /essays/{studentId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (request.auth.uid == studentId || isTeacher());
+    }
+  }
+}
