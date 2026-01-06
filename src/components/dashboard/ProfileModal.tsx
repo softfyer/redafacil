@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Save, ArrowLeft } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter no mínimo 2 caracteres.' }),
@@ -47,14 +48,15 @@ type ProfileModalProps = {
 
 export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
   const { toast } = useToast();
+  const { userData } = useUser(); // Get user data from context
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<'profile' | 'password'>('profile');
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: 'Juliana Pereira',
-      email: 'aluno@email.com',
+      name: '',
+      email: '',
     },
   });
 
@@ -67,13 +69,19 @@ export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
   });
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      if (userData) {
+        profileForm.reset({
+          name: userData.name || '',
+          email: userData.email || '',
+        });
+      }
+    } else {
       // Reset views and forms when modal is closed
       setTimeout(() => setView('profile'), 300);
-      profileForm.reset();
       passwordForm.reset();
     }
-  }, [isOpen, profileForm, passwordForm]);
+  }, [isOpen, userData, profileForm, passwordForm]);
 
   function onProfileSubmit(values: z.infer<typeof profileSchema>) {
     setIsLoading(true);

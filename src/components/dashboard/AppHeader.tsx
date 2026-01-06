@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, User, Settings, Sun, Moon, CheckCheck } from 'lucide-react';
+import { Bell, LogOut, User, Sun, Moon, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -15,8 +15,10 @@ import { ptBR } from 'date-fns/locale';
 import { Feather } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 import { ClientOnly } from '../ui/client-only';
+import { useUser } from '@/contexts/UserContext';
 
 export default function AppHeader({ title }: { title: string }) {
+  const { userData } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const unreadCount = notifications.filter(n => !n.read).length;
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -45,6 +47,13 @@ export default function AppHeader({ title }: { title: string }) {
     setNotifications(currentNotifications =>
         currentNotifications.map(n => n.read ? n : { ...n, read: true })
     );
+  };
+
+  const getInitials = (name: string | undefined) => {
+    if (!name) return '';
+    const nameParts = name.split(' ');
+    const initials = nameParts.map(part => part.charAt(0)).join('');
+    return initials.toUpperCase();
   };
 
   return (
@@ -113,16 +122,16 @@ export default function AppHeader({ title }: { title: string }) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>JP</AvatarFallback>
+                  <AvatarFallback>{getInitials(userData?.name)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Juliana Pereira</p>
+                  <p className="text-sm font-medium leading-none">{userData?.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    aluno@email.com
+                    {userData?.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
