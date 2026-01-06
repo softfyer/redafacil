@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { addStudent } from '@/lib/services/studentService';
 
@@ -60,6 +60,7 @@ export function RegisterForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -67,21 +68,30 @@ export function RegisterForm() {
       );
       const user = userCredential.user;
 
+      // 2. Send the verification email
+      await sendEmailVerification(user);
+
+      // 3. Create the student document in Firestore
       await addStudent({
         uid: user.uid,
         name: values.name,
         email: values.email,
       });
 
+      // 4. Inform the user to check their email
       toast({
-        title: 'Cadastro realizado com sucesso!',
-        description: 'Você já pode fazer login com sua nova conta.',
+        title: 'Cadastro quase completo!',
+        description: 'Enviamos um link de confirmação para o seu e-mail. Por favor, verifique sua caixa de entrada e spam para ativar sua conta.',
+        duration: 8000, // Longer duration for this important message
       });
+
+      // 5. Redirect to login page
       router.push('/login');
+
     } catch (error: any) {
       let message = 'Ocorreu um erro ao criar a conta. Tente novamente.';
       if (error.code === 'auth/email-already-in-use') {
-        message = 'Este email já está em uso.';
+        message = 'Este email já está em uso por outra conta.';
       }
       toast({
         title: 'Erro no cadastro',
