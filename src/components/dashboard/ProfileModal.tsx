@@ -26,6 +26,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Save, ArrowLeft } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { updatePassword, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase'; // Import auth instance
+import { useRouter } from 'next/navigation';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter no mínimo 2 caracteres.' }),
@@ -48,7 +51,8 @@ type ProfileModalProps = {
 
 export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
   const { toast } = useToast();
-  const { userData } = useUser(); // Get user data from context
+  const { user, userData } = useUser();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<'profile' | 'password'>('profile');
 
@@ -77,7 +81,6 @@ export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
         });
       }
     } else {
-      // Reset views and forms when modal is closed
       setTimeout(() => setView('profile'), 300);
       passwordForm.reset();
     }
@@ -87,7 +90,6 @@ export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
     setIsLoading(true);
     console.log(values);
     
-    // Mock API call
     setTimeout(() => {
       toast({
         title: 'Perfil atualizado!',
@@ -98,20 +100,47 @@ export function ProfileModal({ isOpen, onOpenChange }: ProfileModalProps) {
     }, 1500);
   }
 
-  function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
-    setIsLoading(true);
-    console.log({ password: values.password });
+  async function onPasswordSubmit(values: z.infer<typeof passwordSchema>) {
+    if (!user) {
+        toast({ title: 'Erro', description: 'Usuário não autenticado.', variant: 'destructive' });
+        return;
+    }
 
-    // Mock API call for password change
-    setTimeout(() => {
+    setIsLoading(true);
+    try {
+        await updatePassword(user, values.password);
         toast({
-            title: 'Senha atualizada!',
-            description: 'Sua senha foi redefinida com sucesso.',
+            title: 'Senha atualizada com sucesso!',
+            description: 'Você será desconectado por segurança. Por favor, faça login novamente com sua nova senha.',
         });
+        
+        await signOut(auth);
+        router.push('/login');
+
+    } catch (error: any) {
+        console.error("Password Update Error:", error);
+        let description = 'Ocorreu um erro ao redefinir sua senha.';
+        if (error.code === 'auth/requires-recent-login') {
+            description = 'Esta operação é sensível e requer autenticação recente. Você será deslogado por segurança. Por favor, faça login novamente e tente outra vez.';
+            toast({
+                title: 'Login Recente Necessário',
+                description,
+                variant: 'destructive',
+                duration: 8000, 
+            });
+            await signOut(auth);
+            router.push('/login');
+        } else {
+            toast({
+                title: 'Erro ao redefinir senha',
+                description,
+                variant: 'destructive',
+            });
+        }
+    } finally {
         setIsLoading(false);
-        setView('profile');
-        passwordForm.reset();
-    }, 1500);
+        onOpenChange(false); // Close the modal
+    }
   }
 
 
