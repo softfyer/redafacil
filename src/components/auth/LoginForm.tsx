@@ -82,7 +82,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -101,7 +101,12 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Senha</FormLabel>
+                <div className="flex items-center justify-between">
+                    <FormLabel>Senha</FormLabel>
+                    <Link href="/reset-password"className="text-xs text-primary hover:underline">
+                        Esqueceu a senha?
+                    </Link>
+                </div>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
