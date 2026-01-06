@@ -10,7 +10,7 @@ import {
   getDocs,
   orderBy,
   doc,
-  deleteDoc,
+  updateDoc,
   writeBatch
 } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
@@ -25,12 +25,32 @@ export interface Essay {
   targetExam: string;
   promptCommands: string;
   submittedAt?: any; // Keep as any for serverTimestamp compatibility
-  status: 'pending' | 'corrected' | 'sent';
+  status: 'pending' | 'corrected' | 'sent' | 'a corrigir';
   fileUrl: string;
   correctedFileUrl?: string;
   audioFeedbackUrl?: string;
   textFeedback?: string;
 }
+
+/**
+ * Deletes a file from Firebase Storage based on its URL.
+ * @param fileUrl The URL of the file to delete.
+ */
+export const deleteFileByUrl = async (fileUrl: string) => {
+  if (!fileUrl) return;
+  try {
+    const fileRef = ref(storage, fileUrl);
+    await deleteObject(fileRef);
+    console.log(`Successfully deleted file: ${fileUrl}`);
+  } catch (error: any) {
+    if (error.code === 'storage/object-not-found') {
+      console.warn(`File not found, could not delete: ${fileUrl}`);
+    } else {
+      console.error(`Error deleting file: ${fileUrl}`, error);
+      throw new Error('Failed to delete existing file.');
+    }
+  }
+};
 
 /**
  * Adds a new essay to the root "essays" collection.
@@ -55,6 +75,45 @@ export const addEssay = async (studentId: string, essayData: Omit<Essay, 'id' | 
     throw new Error('Failed to add essay to the new collection.');
   }
 };
+
+/**
+ * Updates an existing essay. If a new file is uploaded, the old one is deleted.
+ * @param essayData The essay data to update, must include an ID.
+ * @param newFileUrl Optional. The URL of the new file if it was replaced.
+ * @param oldFileUrl Optional. The URL of the old file to be deleted.
+ */
+export const updateEssay = async (essayData: Essay, newFileUrl?: string, oldFileUrl?: string) => {
+  if (!essayData.id) {
+    throw new Error('An essay ID must be provided to update an essay.');
+  }
+
+  const batch = writeBatch(db);
+  const essayDocRef = doc(db, 'essays', essayData.id);
+
+  const dataToUpdate: any = { ...essayData };
+  delete dataToUpdate.id; 
+  
+  if (newFileUrl) {
+    dataToUpdate.fileUrl = newFileUrl;
+  }
+
+  batch.update(essayDocRef, dataToUpdate);
+
+  try {
+    // If a new file was uploaded and an old one existed, delete the old one
+    if (newFileUrl && oldFileUrl) {
+      await deleteFileByUrl(oldFileUrl);
+    }
+    
+    await batch.commit();
+    console.log('Essay updated successfully: ', essayData.id);
+
+  } catch (error) {
+    console.error('Error updating essay: ', error);
+    throw new Error('Failed to update essay.');
+  }
+};
+
 
 /**
  * Fetches all essays for a specific student from the root "essays" collection.
@@ -88,36 +147,5 @@ export const getEssaysForStudent = async (studentId: string): Promise<Essay[]> =
     console.error('Error fetching essays: ', error);
     // This will now require a composite index. The error message will guide the user.
     throw new Error('Failed to fetch essays. You may need to create a composite index in Firestore. Check the console for a link.');
-  }
-};
-
-/**
- * Deletes an essay document from Firestore and its corresponding file from Storage.
- * @param essay The essay object to delete.
- */
-export const deleteEssay = async (essay: Essay) => {
-  if (!essay.id || !essay.fileUrl) {
-    throw new Error('Essay ID and File URL are required for deletion.');
-  }
-
-  try {
-    // 1. Delete the document from Firestore
-    const essayDocRef = doc(db, 'essays', essay.id);
-    await deleteDoc(essayDocRef);
-
-    // 2. Delete the file from Firebase Storage
-    const fileRef = ref(storage, essay.fileUrl);
-    await deleteObject(fileRef);
-
-    console.log(`Successfully deleted essay ${essay.id} and its file.`);
-
-  } catch (error) {
-    console.error("Error deleting essay:", error);
-    // Handle cases where the file might not exist or other permission issues
-    if ((error as any).code === 'storage/object-not-found') {
-        console.warn("File not found in storage, but continuing to delete Firestore entry.")
-    } else {
-        throw new Error('Failed to delete the essay. Please try again.');
-    }
   }
 };

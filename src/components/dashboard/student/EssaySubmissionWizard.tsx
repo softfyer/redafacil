@@ -8,9 +8,9 @@ import { useForm, FormProvider } from 'react-hook-form';
 import * as z from 'zod';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Send, Save, Loader2 } from 'lucide-react';
+import { Send, Save, Loader2, Download } from 'lucide-react';
 import type { Essay } from '@/lib/services/essayService';
-import { addEssay } from '@/lib/services/essayService';
+import { addEssay, updateEssay } from '@/lib/services/essayService';
 import { uploadEssayFile } from '@/lib/services/storageService';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -20,12 +20,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
 
-const formSchema = z.object({
+const baseSchema = z.object({
   title: z.string().min(5, { message: 'O título deve ter no mínimo 5 caracteres.' }),
   topic: z.string().min(5, { message: 'O tema deve ter no mínimo 5 caracteres.' }),
   textType: z.enum(['dissertativo-argumentativo', 'carta', 'artigo-de-opiniao', 'outro'], { required_error: 'Selecione o tipo textual.' }),
   targetExam: z.string().min(2, { message: 'O campo deve ter no mínimo 2 caracteres.' }),
   promptCommands: z.string().min(10, { message: 'Os comandos devem ter no mínimo 10 caracteres.' }),
+});
+
+const formSchema = baseSchema.extend({
   file: z
     .any()
     .refine((files) => files?.length == 1, "Arquivo é obrigatório.")
@@ -36,8 +39,17 @@ const formSchema = z.object({
     ),
 });
 
-const editFormSchema = formSchema.extend({
-    file: formSchema.shape.file.optional(), // File is optional when editing
+const editFormSchema = baseSchema.extend({
+  file: z.any()
+    .optional()
+    .refine(
+        (files) => !files || files.length === 0 || (files?.[0]?.size <= MAX_FILE_SIZE),
+        `Tamanho máximo é 5MB.`
+    )
+    .refine(
+        (files) => !files || files.length === 0 || (ACCEPTED_FILE_TYPES.includes(files?.[0]?.type)),
+        "Apenas .docx, .pdf, .jpg e .png são aceitos."
+    )
 });
 
 
@@ -47,6 +59,19 @@ type EssaySubmissionWizardProps = {
   onSubmitSuccess: () => void;
   essayToEdit: Essay | null;
 };
+
+// Helper to get file name from URL
+const getFileNameFromUrl = (url: string) => {
+    try {
+        const decodedUrl = decodeURIComponent(url);
+        const fileNameWithToken = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1)
+        const fileName = fileNameWithToken.split('?')[0];
+        const finalName = fileName.substring(fileName.lastIndexOf('%') + 1) || fileName;
+        return finalName;
+    } catch (e) {
+        return "redacao-submetida";
+    }
+}
 
 export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, essayToEdit }: EssaySubmissionWizardProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +110,6 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
   const handleFormSubmit = async (values: z.infer<typeof currentSchema>) => {
     setIsLoading(true);
     const user = auth.currentUser;
-    console.log('Submitting form for user:', user?.uid);
 
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Usuário não encontrado. Faça login novamente.', variant: 'destructive' });
@@ -94,31 +118,31 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
     }
 
     try {
-      let fileUrl = essayToEdit?.fileUrl || '';
+      let newFileUrl: string | undefined = undefined;
+      const oldFileUrl = essayToEdit?.fileUrl;
       const fileToUpload = values.file?.[0];
 
       if (fileToUpload) {
-        console.log('Uploading file...');
-        fileUrl = await uploadEssayFile(fileToUpload, user.uid);
-        console.log('File uploaded, URL:', fileUrl);
-      } else if (!isEditing) {
-        throw new Error("O arquivo da redação é obrigatório.");
+        newFileUrl = await uploadEssayFile(fileToUpload, user.uid);
       }
       
       const essayData = {
+        ...essayToEdit,
+        id: essayToEdit?.id,
+        studentId: user.uid,
         title: values.title,
         topic: values.topic,
         textType: values.textType,
         targetExam: values.targetExam,
         promptCommands: values.promptCommands,
-        fileUrl: fileUrl,
-        status: 'a corrigir' as const, // FIX: Changed status to 'a corrigir'
+        fileUrl: newFileUrl || oldFileUrl,
+        status: 'a corrigir' as const,
       };
 
       if (isEditing && essayToEdit) {
-        toast({ title: "Edição ainda não implementada.", description: "A atualização de redações será adicionada em breve." });
+        await updateEssay(essayData as Essay, newFileUrl, oldFileUrl);
+        toast({ title: 'Redação atualizada com sucesso!', description: 'Suas alterações foram salvas.' });
       } else {
-        console.log('Adding essay to Firestore with data:', essayData);
         await addEssay(user.uid, essayData);
         toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
       }
@@ -130,7 +154,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
       console.error('Error during form submission:', error);
       toast({
         title: 'Erro no envio',
-        description: error.message || 'Não foi possível enviar sua redação. Tente novamente.',
+        description: error.message || 'Não foi possível processar sua solicitação.',
         variant: 'destructive',
       });
     } finally {
@@ -140,7 +164,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
 
   const wizardTitle = isEditing ? "Editar Redação" : "Enviar Nova Redação";
   const wizardDescription = isEditing
-    ? "Altere os dados da sua redação e/ou anexe um novo arquivo."
+    ? "Altere os dados da sua redação. Para substituir o arquivo, basta anexar um novo."
     : 'Preencha os dados e anexe seu texto para correção.';
 
   return (
@@ -235,27 +259,42 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                     </FormItem>
                 )}
             />
-            <FormField
-            control={form.control}
-            name="file"
-            render={() => (
-                <FormItem>
-                <FormLabel>Arquivo da Redação {isEditing && "(Opcional)"}</FormLabel>
-                <FormControl>
-                    <Input type="file" {...fileRef} />
-                </FormControl>
-                <FormMessage />
-                <FormDescription>
-                    {isEditing ? "Anexe um novo arquivo para substituí-lo." : "Formatos aceitos: DOCX, PDF, JPG, PNG (máx. 5MB)."}
-                </FormDescription>
+            
+            {isEditing && essayToEdit?.fileUrl && (
+                 <FormItem>
+                    
+                    <FormControl>
+                        <a href={essayToEdit.fileUrl} download={getFileNameFromUrl(essayToEdit.fileUrl)}>
+                            <Button type="button" className="w-full sm:w-auto bg-background">
+                                <Download className="mr-2 h-4 w-4" />
+                                Baixar Redação Anexada
+                            </Button>
+                        </a>
+                    </FormControl>
                 </FormItem>
             )}
+            
+            <FormField
+                control={form.control}
+                name="file"
+                render={() => (
+                    <FormItem>
+                    <FormLabel>{isEditing ? "Substituir Arquivo (Opcional)" : "Arquivo da Redação"}</FormLabel>
+                    <FormControl>
+                        <Input type="file" {...fileRef} />
+                    </FormControl>
+                    <FormMessage />
+                    <FormDescription>
+                        Formatos aceitos: DOCX, PDF, JPG, PNG (máx. 5MB).
+                    </FormDescription>
+                    </FormItem>
+                )}
             />
             <DialogFooter className="sticky bottom-0 bg-background pt-4">
                 <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEditing ? <Save className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />)}
-                    {isLoading ? 'Enviando...' : (isEditing ? 'Salvar Alterações' : 'Enviar Redação')}
+                    {isLoading ? (isEditing ? 'Salvando...' : 'Enviando...') : (isEditing ? 'Salvar Alterações' : 'Enviar Redação')}
                 </Button>
             </DialogFooter>
         </form>

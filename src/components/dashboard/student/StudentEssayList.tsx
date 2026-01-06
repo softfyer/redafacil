@@ -1,29 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import type { Essay } from '@/lib/services/essayService';
-import { deleteEssay } from '@/lib/services/essayService';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useToast } from '@/hooks/use-toast';
+import { Pencil } from 'lucide-react';
 
 type StudentEssayListProps = {
   essays: Essay[];
   onEdit: (essay: Essay) => void;
-  onDeleteSuccess: () => void;
 };
 
 // Helper to format date
@@ -45,32 +30,7 @@ const formatDate = (date: any) => {
   });
 };
 
-export function StudentEssayList({ essays, onEdit, onDeleteSuccess }: StudentEssayListProps) {
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store deleting essay ID
-  const { toast } = useToast();
-
-  const handleDeleteClick = async (essay: Essay) => {
-    if (!essay.id) return; // Guard clause
-    setIsDeleting(essay.id);
-    try {
-      await deleteEssay(essay);
-      toast({
-        title: "Redação excluída!",
-        description: "Sua redação foi removida com sucesso.",
-      });
-      onDeleteSuccess(); // Callback to refetch essays
-    } catch (error) {
-      console.error("Failed to delete essay:", error);
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível remover a redação. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(null);
-    }
-  };
-
+export function StudentEssayList({ essays, onEdit }: StudentEssayListProps) {
   if (essays.length === 0) {
     return (
       <div className="text-center py-12 px-4 border-2 border-dashed rounded-lg">
@@ -127,37 +87,10 @@ export function StudentEssayList({ essays, onEdit, onDeleteSuccess }: StudentEss
             </p>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(essay)} disabled={isDeleting === essay.id}>
-                Ver Detalhes
+            <Button variant="outline" size="sm" onClick={() => onEdit(essay)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar Redação
             </Button>
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={isDeleting === essay.id}>
-                  {isDeleting === essay.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso excluirá permanentemente a redação
-                    e o arquivo associado.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDeleteClick(essay)}>
-                    Sim, excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
           </CardFooter>
         </Card>
       ))}

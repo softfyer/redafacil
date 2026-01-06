@@ -40,7 +40,7 @@ export default function StudentDashboard() {
       console.error("Error fetching essays:", error);
       toast({
         title: 'Erro ao carregar redações',
-        description: 'Não foi possível buscar suas redações. Se o erro persistir, pode ser necessário criar um índice no Firestore. Verifique o console para mais detalhes.',
+        description: 'Não foi possível buscar suas redações. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -60,17 +60,22 @@ export default function StudentDashboard() {
   };
 
   const handleEditEssayClick = (essay: Essay) => {
-    toast({
-      title: 'Função ainda não implementada',
-      description: 'A edição de redações será adicionada em breve.',
-    });
+    setEssayToEdit(essay);
+    setIsWizardOpen(true);
   };
 
-  // Handles data changes (e.g., new submission, deletion) by refetching the essay list.
   const handleDataChange = () => {
     if (currentUser) {
       fetchEssays(currentUser.uid);
     }
+  };
+  
+  // Close wizard and clear editing state
+  const handleWizardClose = (isOpen: boolean) => {
+      if (!isOpen) {
+          setEssayToEdit(null);
+      }
+      setIsWizardOpen(isOpen);
   };
 
   if (!currentUser) {
@@ -101,12 +106,12 @@ export default function StudentDashboard() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <StudentEssayList essays={essays} onEdit={handleEditEssayClick} onDeleteSuccess={handleDataChange} />
+        <StudentEssayList essays={essays} onEdit={handleEditEssayClick} />
       )}
 
       <EssaySubmissionWizard
         isOpen={isWizardOpen}
-        onOpenChange={setIsWizardOpen}
+        onOpenChange={handleWizardClose}
         onSubmitSuccess={handleDataChange}
         essayToEdit={essayToEdit}
       />
