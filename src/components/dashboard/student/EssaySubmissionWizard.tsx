@@ -112,7 +112,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
         targetExam: values.targetExam,
         promptCommands: values.promptCommands,
         fileUrl: fileUrl,
-        status: 'sent' as const,
+        status: 'a corrigir' as const, // FIX: Changed status to 'a corrigir'
       };
 
       if (isEditing && essayToEdit) {

@@ -1,41 +1,23 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Feather, LogIn } from 'lucide-react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Por favor, insira um email válido.' }),
-  password: z.string().min(6, { message: 'A senha deve ter no mínimo 6 caracteres.' }),
-  userType: z.enum(['student', 'teacher'], {
-    required_error: 'Você precisa selecionar um tipo de usuário.',
-  }),
+  password: z.string().min(1, { message: 'A senha não pode estar em branco.' }),
 });
 
 export function LoginForm() {
@@ -48,28 +30,38 @@ export function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
-      userType: 'student',
     },
   });
-
-  const userType = form.watch('userType');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: 'Login bem-sucedido!',
-        description: `Bem-vindo(a) de volta.`,
-      });
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
-      if (values.userType === 'student') {
-        router.push('/student/dashboard');
-      } else {
+      const teacherDocRef = doc(db, 'teachers', user.uid);
+      const teacherDocSnap = await getDoc(teacherDocRef);
+
+      if (teacherDocSnap.exists()) {
+        toast({ title: 'Login bem-sucedido!', description: `Bem-vindo(a) de volta.` });
         router.push('/teacher/dashboard');
+        return;
       }
+
+      const studentDocRef = doc(db, 'students', user.uid);
+      const studentDocSnap = await getDoc(studentDocRef);
+
+      if (studentDocSnap.exists()) {
+        toast({ title: 'Login bem-sucedido!', description: `Bem-vindo(a) de volta.` });
+        router.push('/student/dashboard');
+        return;
+      }
+
+      await signOut(auth);
+      throw new Error('Sua conta não possui um perfil de estudante ou professor válido.');
+
     } catch (error: any) {
-      let message = 'Ocorreu um erro ao fazer login. Tente novamente.';
+      let message = error.message;
       if (
         error.code === 'auth/user-not-found' ||
         error.code === 'auth/wrong-password' ||
@@ -77,9 +69,10 @@ export function LoginForm() {
       ) {
         message = 'Email ou senha inválidos.';
       }
+      
       toast({
-        title: 'Erro no login',
-        description: message,
+        title: 'Falha no login',
+        description: message || 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
     } finally {
@@ -88,93 +81,47 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <div className="flex justify-center items-center gap-2 mb-4">
-          <Feather className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold tracking-tighter">Redação Online</h1>
-        </div>
-        <CardTitle>Acesse sua conta</CardTitle>
-        <CardDescription>
-          Insira seus dados para continuar.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="seu@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Senha</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="********" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="userType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Eu sou...</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="student" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Aluno</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="teacher" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Professor</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
-              {!isLoading && <LogIn className="ml-2 h-4 w-4" />}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="flex-col">
-        {userType === 'student' && (
-            <p className="text-sm text-muted-foreground">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input placeholder="seu@email.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Senha</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading ? 'Verificando...' : 'Entrar'}
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground pt-2">
             Não tem uma conta?{' '}
             <Link href="/register" className="text-primary hover:underline">
                 Cadastre-se
             </Link>
-            </p>
-        )}
-      </CardFooter>
-    </Card>
+        </p>
+      </form>
+    </Form>
   );
 }
