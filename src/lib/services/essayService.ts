@@ -30,6 +30,7 @@ export interface Essay {
   correctedFileUrl?: string;
   audioFeedbackUrl?: string;
   textFeedback?: string;
+  correctedAt?: any; // Timestamp for when the correction was submitted
 }
 
 /**
@@ -77,41 +78,72 @@ export const addEssay = async (studentId: string, essayData: Omit<Essay, 'id' | 
 };
 
 /**
- * Updates an existing essay. If a new file is uploaded, the old one is deleted.
- * @param essayData The essay data to update, must include an ID.
- * @param newFileUrl Optional. The URL of the new file if it was replaced.
- * @param oldFileUrl Optional. The URL of the old file to be deleted.
+ * Updates an existing essay. If a new file is provided, it deletes the old one.
+ * @param essay The full essay object, including its ID.
+ * @param newFileUrl The URL of the newly uploaded file, if any.
+ * @param oldFileUrl The URL of the old file to be deleted if a new one was uploaded.
  */
-export const updateEssay = async (essayData: Essay, newFileUrl?: string, oldFileUrl?: string) => {
-  if (!essayData.id) {
+export const updateEssay = async (essay: Essay, newFileUrl?: string, oldFileUrl?: string) => {
+  if (!essay.id) {
     throw new Error('An essay ID must be provided to update an essay.');
   }
 
   const batch = writeBatch(db);
-  const essayDocRef = doc(db, 'essays', essayData.id);
+  const essayDocRef = doc(db, 'essays', essay.id);
 
-  const dataToUpdate: any = { ...essayData };
-  delete dataToUpdate.id; 
-  
-  if (newFileUrl) {
-    dataToUpdate.fileUrl = newFileUrl;
+  // If a new file was uploaded, the old file should be deleted.
+  if (newFileUrl && oldFileUrl) {
+    await deleteFileByUrl(oldFileUrl);
   }
+  
+  // Data to update, excluding id
+  const { id, ...essayData } = essay;
 
-  batch.update(essayDocRef, dataToUpdate);
+  batch.update(essayDocRef, {
+    ...essayData,
+    fileUrl: newFileUrl || oldFileUrl, // Use new URL or keep the old one
+  });
 
   try {
-    // If a new file was uploaded and an old one existed, delete the old one
-    if (newFileUrl && oldFileUrl) {
-      await deleteFileByUrl(oldFileUrl);
-    }
-    
     await batch.commit();
-    console.log('Essay updated successfully: ', essayData.id);
-
+    console.log(`Essay ${essay.id} updated successfully.`);
   } catch (error) {
     console.error('Error updating essay: ', error);
     throw new Error('Failed to update essay.');
   }
+};
+
+/**
+ * Submits a correction for an essay.
+ * @param essayId The ID of the essay to update.
+ * @param correctionData The correction data, including feedback and URLs.
+ */
+export const submitCorrection = async (essayId: string, correctionData: {
+  textFeedback: string;
+  audioFeedbackUrl?: string;
+  correctedFileUrl?: string;
+}) => {
+    if (!essayId) {
+        throw new Error('An essay ID must be provided to submit a correction.');
+    }
+
+    try {
+        const essayDocRef = doc(db, 'essays', essayId);
+
+        const updateData = {
+            ...correctionData,
+            status: 'corrected' as const, // Explicitly type the status
+            correctedAt: serverTimestamp(),
+        };
+
+        await updateDoc(essayDocRef, updateData);
+
+        console.log('Correction submitted successfully for essay: ', essayId);
+
+    } catch (error) {
+        console.error('Error submitting correction: ', error);
+        throw new Error('Failed to submit correction.');
+    }
 };
 
 

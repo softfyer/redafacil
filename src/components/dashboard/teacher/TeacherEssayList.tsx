@@ -46,7 +46,7 @@ export function TeacherEssayList({ onSelectEssay }: TeacherEssayListProps) {
     try {
       let essaysQuery = query(
         collection(db, 'essays'),
-        where('status', '==', 'sent'),
+        where('status', '==', 'a corrigir'),
         orderBy('submittedAt', 'desc')
       );
 
@@ -69,7 +69,6 @@ export function TeacherEssayList({ onSelectEssay }: TeacherEssayListProps) {
         const studentNames = new Map<string, string>();
 
         if (studentIds.length > 0) {
-            // FIX: Changed collection name from 'users' to 'students' to match firestore.rules
             const studentsQuery = query(collection(db, 'students'), where(documentId(), 'in', studentIds));
             const studentSnapshots = await getDocs(studentsQuery);
             studentSnapshots.forEach(doc => {
@@ -94,12 +93,12 @@ export function TeacherEssayList({ onSelectEssay }: TeacherEssayListProps) {
         }
       }
       
-      const countQuery = query(collection(db, 'essays'), where('status', '==', 'sent'));
+      const countQuery = query(collection(db, 'essays'), where('status', '==', 'a corrigir'));
       const countSnapshot = await getDocs(countQuery);
       setTotalEssays(countSnapshot.size);
 
     } catch (error: any) {
-      console.error("Error fetching essays: ", error); // This will now show the real permission error if any.
+      console.error("Error fetching essays: ", error);
     } finally {
       setIsLoading(false);
     }

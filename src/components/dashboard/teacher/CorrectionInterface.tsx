@@ -1,34 +1,46 @@
 'use client';
 
-import { useState } from 'react';
-import type { Essay } from '@/lib/placeholder-data';
+import { useState, useRef } from 'react';
+import type { Essay } from '@/lib/services/essayService'; // Import from service
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Download, Send, Upload } from 'lucide-react';
+import { ArrowLeft, Download, Send, Loader2 } from 'lucide-react';
 import { AudioRecorder } from './AudioRecorder';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { ClientOnly } from '@/components/ui/client-only';
+import { uploadCorrectedEssayFile, uploadFeedbackAudio } from '@/lib/services/storageService';
+import { submitCorrection } from '@/lib/services/essayService';
 
 type CorrectionInterfaceProps = {
-  essay: Essay;
-  onCorrectionSubmit: (correctedData: Partial<Essay>) => void;
+  essay: Essay & { studentName: string };
+  onCorrectionSubmit: () => void; // No longer needs to pass data up
   onBack: () => void;
 };
 
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
   const [textFeedback, setTextFeedback] = useState('');
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [correctedFile, setCorrectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Enviando...');
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = () => {
-    if (!textFeedback) {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCorrectedFile(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!textFeedback.trim()) {
         toast({
             title: "Campo obrigatório",
             description: "O feedback de texto não pode estar vazio.",
@@ -36,20 +48,60 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
         });
         return;
     }
+    if (!essay.id || !essay.studentId) {
+        console.error("Essay ID or Student ID is missing.");
+        toast({ title: "Erro Crítico", description: "Não foi possível identificar a redação ou o aluno.", variant: "destructive" });
+        return;
+    }
 
     setIsLoading(true);
-    // Mock submission
-    setTimeout(() => {
-        onCorrectionSubmit({
+
+    try {
+        let audioFeedbackUrl: string | undefined = undefined;
+        let correctedFileUrl: string | undefined = undefined;
+
+        // 1. Upload audio if it exists
+        if (audioBlob) {
+            setLoadingMessage('Enviando áudio...');
+            audioFeedbackUrl = await uploadFeedbackAudio(audioBlob, essay.studentId, essay.id);
+        }
+
+        // 2. Upload corrected file if it exists
+        if (correctedFile) {
+            setLoadingMessage('Enviando arquivo corrigido...');
+            correctedFileUrl = await uploadCorrectedEssayFile(correctedFile, essay.studentId, essay.id);
+        }
+
+        // 3. Submit all data to Firestore
+        setLoadingMessage('Finalizando correção...');
+        await submitCorrection(essay.id, {
             textFeedback,
-            audioFeedbackUrl: audioUrl || undefined,
-            correctedFileUrl: '/placeholder-corrected.pdf', // Mock corrected file
+            audioFeedbackUrl,
+            correctedFileUrl,
         });
+
+        toast({
+            title: 'Correção enviada!',
+            description: 'A redação foi marcada como corrigida e o aluno será notificado.',
+        });
+
+        // 4. Trigger parent component to update UI
+        onCorrectionSubmit();
+
+    } catch (error: any) {
+        console.error("Correction submission failed: ", error);
+        toast({
+            title: "Falha no Envio",
+            description: error.message || "Ocorreu um erro ao enviar a correção. Por favor, tente novamente.",
+            variant: "destructive",
+        });
+    } finally {
         setIsLoading(false);
-    }, 1500)
+        setLoadingMessage('Enviando...');
+    }
   };
 
-  const textTypeMap = {
+  const textTypeMap: { [key: string]: string } = {
     'dissertativo-argumentativo': 'Dissertativo-Argumentativo',
     'carta': 'Carta',
     'artigo-de-opiniao': 'Artigo de Opinião',
@@ -58,7 +110,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={onBack}>
+      <Button variant="ghost" onClick={onBack} disabled={isLoading}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para a lista
       </Button>
@@ -67,11 +119,11 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
         <CardHeader>
           <CardTitle>Corrigindo: {essay.title}</CardTitle>
           <CardDescription>
-            Enviada por {essay.studentName} em <ClientOnly>{format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</ClientOnly>.
+            Enviada por {essay.studentName} em <ClientOnly>{essay.submittedAt ? format(essay.submittedAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data indisponível'}</ClientOnly>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-muted/30">
                 <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Tema</p>
                     <p className="font-semibold">{essay.topic}</p>
@@ -82,17 +134,17 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
                 </div>
                 <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Tipo Textual</p>
-                    <p className="font-semibold">{textTypeMap[essay.textType]}</p>
+                    <p className="font-semibold">{textTypeMap[essay.textType] || 'Não especificado'}</p>
                 </div>
                 <div className="space-y-1 col-span-1 md:col-span-2">
                     <p className="text-sm font-medium text-muted-foreground">Comandos da Proposta</p>
-                    <p className="font-mono text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">{essay.promptCommands}</p>
+                    <p className="font-mono text-sm bg-background p-3 rounded-md whitespace-pre-wrap">{essay.promptCommands}</p>
                 </div>
             </div>
             
           <div>
             <Button asChild variant="secondary">
-              <a href={essay.fileUrl} download>
+              <a href={essay.fileUrl} target="_blank" rel="noopener noreferrer">
                 <Download className="mr-2 h-4 w-4" />
                 Baixar Redação Original
               </a>
@@ -102,33 +154,44 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
           <Separator />
 
           <div className="space-y-2">
-            <Label>Feedback por Áudio</Label>
-            <AudioRecorder onRecordingComplete={setAudioUrl} />
+            <Label>Feedback por Áudio (Opcional)</Label>
+            <AudioRecorder onRecordingComplete={setAudioBlob} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="text-feedback">Feedback por Texto</Label>
+            <Label htmlFor="text-feedback">Feedback por Texto (Obrigatório)</Label>
             <Textarea
               id="text-feedback"
-              placeholder="Digite seu feedback aqui..."
+              placeholder="Digite sua análise, pontos fortes, pontos a melhorar e sugestões para o aluno..."
               value={textFeedback}
               onChange={(e) => setTextFeedback(e.target.value)}
-              rows={8}
+              rows={10}
+              disabled={isLoading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="corrected-file">Anexar Redação Corrigida</Label>
-            <Input id="corrected-file" type="file" />
-            <p className="text-xs text-muted-foreground">Opcional. Você pode anexar o arquivo com suas marcações.</p>
+            <Label htmlFor="corrected-file">Anexar Redação Corrigida (Opcional)</Label>
+            <Input 
+                id="corrected-file" 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                disabled={isLoading}
+                accept=".pdf,.doc,.docx,.png,.jpg"
+            />
+            <p className="text-xs text-muted-foreground">Anexe o arquivo com suas marcações (ex: PDF, Word, imagem).</p>
           </div>
         </CardContent>
       </Card>
       
       <div className="flex justify-end">
-        <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? 'Enviando...' : 'Enviar Correção'}
-            <Send className="ml-2 h-4 w-4" />
+        <Button onClick={handleSubmit} disabled={isLoading || !textFeedback.trim()}>
+            {isLoading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {loadingMessage}</>
+            ) : (
+                <><Send className="mr-2 h-4 w-4" /> Enviar Correção</>
+            )}
         </Button>
       </div>
     </div>
