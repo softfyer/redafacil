@@ -29,20 +29,21 @@ export const deleteFileByUrl = async (fileUrl: string) => {
  * Uploads an original essay file to a specified path in Firebase Storage.
  * @param file The file to upload.
  * @param studentId The UID of the student, used to create a user-specific folder.
+ * @param essayId The ID of the essay document.
  * @returns A promise that resolves to the public download URL of the file.
  */
-export const uploadEssayFile = async (file: File, studentId: string): Promise<string> => {
+export const uploadEssayFile = async (file: File, studentId: string, essayId: string): Promise<string> => {
   if (!file) {
     throw new Error('A file must be provided to upload.');
   }
-  if (!studentId) {
-    throw new Error('A student ID must be provided to upload a file.');
+  if (!studentId || !essayId) {
+    throw new Error('A student ID and an essay ID must be provided to upload a file.');
   }
 
   // Create a unique file name to prevent overwrites
   const fileExtension = file.name.split('.').pop();
   const uniqueFileName = `${uuidv4()}.${fileExtension}`;
-  const storagePath = `essays/${studentId}/${uniqueFileName}`;
+  const storagePath = `essays/${studentId}/${essayId}/${uniqueFileName}`;
 
   try {
     const storageRef = ref(storage, storagePath);
@@ -79,7 +80,7 @@ export const uploadCorrectedEssayFile = async (file: File, studentId: string, es
 
     const fileExtension = file.name.split('.').pop();
     const fileName = `${essayId}-corrected.${fileExtension}`;
-    const storagePath = `essays/${studentId}/${fileName}`;
+    const storagePath = `essays/${studentId}/${essayId}/${fileName}`;
 
     try {
         const storageRef = ref(storage, storagePath);
@@ -112,7 +113,7 @@ export const uploadFeedbackAudio = async (audioBlob: Blob, studentId: string, es
     }
 
     const fileName = `${essayId}-feedback.webm`; // Assuming webm format from recorder
-    const storagePath = `essays/${studentId}/${fileName}`;
+    const storagePath = `essays/${studentId}/${essayId}/${fileName}`;
 
     try {
         const storageRef = ref(storage, storagePath);

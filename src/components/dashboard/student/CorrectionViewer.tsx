@@ -33,6 +33,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                 <h4 className="font-semibold">Detalhes da Redação:</h4>
                 <p className="text-sm text-muted-foreground"><strong>Comando da redação:</strong> {essay.promptCommands}</p>
                 <p className="text-sm text-muted-foreground"><strong>Exame:</strong> {essay.targetExam}</p>
+                <p className="text-sm text-muted-foreground"><strong>Tema da Redação:</strong> {essay.topic}</p>
                 <p className="text-sm text-muted-foreground"><strong>Tipo de texto:</strong> {essay.textType}</p>
             </div>
 

@@ -118,34 +118,63 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
     }
 
     try {
-      let newFileUrl: string | undefined = undefined;
-      const oldFileUrl = essayToEdit?.fileUrl;
-      const fileToUpload = values.file?.[0];
+        const fileToUpload = values.file?.[0];
 
-      if (fileToUpload) {
-        newFileUrl = await uploadEssayFile(fileToUpload, user.uid);
-      }
-      
-      const essayData = {
-        ...essayToEdit,
-        id: essayToEdit?.id,
-        studentId: user.uid,
-        title: values.title,
-        topic: values.topic,
-        textType: values.textType,
-        targetExam: values.targetExam,
-        promptCommands: values.promptCommands,
-        fileUrl: newFileUrl || oldFileUrl,
-        status: 'a corrigir' as const,
-      };
+        if (isEditing && essayToEdit) {
+            // --- EDITING LOGIC ---
+            let newFileUrl: string | undefined = undefined;
+            const oldFileUrl = essayToEdit.fileUrl;
 
-      if (isEditing && essayToEdit) {
-        await updateEssay(essayData as Essay, newFileUrl, oldFileUrl);
-        toast({ title: 'Redação atualizada com sucesso!', description: 'Suas alterações foram salvas.' });
-      } else {
-        await addEssay(user.uid, essayData);
-        toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
-      }
+            // If a new file is being uploaded, upload it first.
+            if (fileToUpload) {
+                // We have the essayId, so we can use the new upload function
+                newFileUrl = await uploadEssayFile(fileToUpload, user.uid, essayToEdit.id!);
+            }
+            
+            const essayDataToUpdate: Essay = {
+                ...essayToEdit,
+                title: values.title,
+                topic: values.topic,
+                textType: values.textType,
+                targetExam: values.targetExam,
+                promptCommands: values.promptCommands,
+                fileUrl: newFileUrl || oldFileUrl, // Use new URL if available, otherwise keep the old one
+            };
+
+            await updateEssay(essayDataToUpdate, newFileUrl, oldFileUrl);
+            toast({ title: 'Redação atualizada com sucesso!', description: 'Suas alterações foram salvas.' });
+
+        } else {
+            // --- CREATING NEW ESSAY LOGIC ---
+            if (!fileToUpload) {
+                toast({ title: 'Arquivo Faltando', description: 'Você precisa anexar o arquivo da redação.', variant: 'destructive' });
+                setIsLoading(false);
+                return;
+            }
+            
+            const essayDocData = {
+                title: values.title,
+                topic: values.topic,
+                textType: values.textType,
+                targetExam: values.targetExam,
+                promptCommands: values.promptCommands,
+                fileUrl: '', // Temporary empty URL
+                status: 'a corrigir' as const,
+            };
+
+            const essayId = await addEssay(user.uid, essayDocData);
+            const newFileUrl = await uploadEssayFile(fileToUpload, user.uid, essayId);
+
+            const finalEssayData: Essay = {
+                id: essayId,
+                studentId: user.uid,
+                ...essayDocData,
+                fileUrl: newFileUrl,
+            };
+            await updateEssay(finalEssayData);
+
+            toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
+        }
       
       onSubmitSuccess();
       onOpenChange(false);
