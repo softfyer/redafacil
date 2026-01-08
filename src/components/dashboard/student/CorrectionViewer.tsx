@@ -16,12 +16,11 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
     return null;
   }
 
-  // CORREÇÃO: Altera de essay.feedback para essay.textFeedback
   const formattedFeedback = essay.textFeedback?.replace(/\n/g, '<br />') || 'Nenhum feedback fornecido.';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[825px]">
         <DialogHeader>
           <DialogTitle>Correção da Redação: {essay.title}</DialogTitle>
           <DialogDescription>
@@ -30,11 +29,27 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
         </DialogHeader>
         
         <div className="py-4 space-y-4">
+            <div className="space-y-2">
+                <h4 className="font-semibold">Detalhes da Redação:</h4>
+                <p className="text-sm text-muted-foreground"><strong>Comando da redação:</strong> {essay.promptCommands}</p>
+                <p className="text-sm text-muted-foreground"><strong>Exame:</strong> {essay.targetExam}</p>
+                <p className="text-sm text-muted-foreground"><strong>Tipo de texto:</strong> {essay.textType}</p>
+            </div>
+
             <h4 className="font-semibold">Feedback do Professor:</h4>
             <div 
                 className="prose prose-sm max-w-none text-muted-foreground p-3 bg-stone-100 rounded-md"
                 dangerouslySetInnerHTML={{ __html: formattedFeedback }}
             />
+
+            {essay.audioFeedbackUrl && (
+                <div className="space-y-2">
+                    <h4 className="font-semibold">Feedback em Áudio:</h4>
+                    <audio controls src={essay.audioFeedbackUrl} className="w-full">
+                        Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                </div>
+            )}
         </div>
 
         {/* ADIÇÃO: Botões para ver arquivo original e baixar o corrigido */}
