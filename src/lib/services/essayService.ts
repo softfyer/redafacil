@@ -11,7 +11,8 @@ import {
   orderBy,
   doc,
   updateDoc,
-  writeBatch
+  writeBatch,
+  setDoc
 } from 'firebase/firestore';
 import { deleteFileByUrl } from './storageService'; // Import from storageService
 
@@ -44,8 +45,10 @@ export const addEssay = async (studentId: string, essayData: Omit<Essay, 'id' | 
   }
   try {
     const essaysCollection = collection(db, 'essays');
+    // Explicitly remove id from essayData to prevent Firestore errors
+    const { id, ...restOfEssayData } = essayData as any;
     const docRef = await addDoc(essaysCollection, {
-      ...essayData,
+      ...restOfEssayData,
       studentId: studentId,
       submittedAt: serverTimestamp(),
     });
@@ -68,24 +71,23 @@ export const updateEssay = async (essay: Essay, newFileUrl?: string, oldFileUrl?
     throw new Error('An essay ID must be provided to update an essay.');
   }
 
-  const batch = writeBatch(db);
   const essayDocRef = doc(db, 'essays', essay.id);
 
-  // If a new file was uploaded, the old file should be deleted.
-  if (newFileUrl && oldFileUrl) {
-    await deleteFileByUrl(oldFileUrl);
+  // If a new file was uploaded and there was an old file, delete the old file.
+  if (newFileUrl && oldFileUrl && newFileUrl !== oldFileUrl) {
+    try {
+      await deleteFileByUrl(oldFileUrl);
+    } catch (error) {
+      console.error(`Failed to delete old file ${oldFileUrl}:`, error);
+      // Log the error but continue with the update
+    }
   }
-  
-  // Data to update, excluding id
-  const { id, ...essayData } = essay;
 
-  batch.update(essayDocRef, {
-    ...essayData,
-    fileUrl: newFileUrl || oldFileUrl, // Use new URL or keep the old one
-  });
+  // Prepare the data for the update, removing the id from the object itself.
+  const { id, ...dataToUpdate } = essay;
 
   try {
-    await batch.commit();
+    await updateDoc(essayDocRef, dataToUpdate);
     console.log(`Essay ${essay.id} updated successfully.`);
   } catch (error) {
     console.error('Error updating essay: ', error);
@@ -93,71 +95,133 @@ export const updateEssay = async (essay: Essay, newFileUrl?: string, oldFileUrl?
   }
 };
 
-/**
- * Submits a correction for an essay.
- * @param essayId The ID of the essay to update.
- * @param correctionData The correction data, including feedback and URLs.
- */
-export const submitCorrection = async (essayId: string, correctionData: {
-  textFeedback: string;
-  audioFeedbackUrl?: string;
-  correctedFileUrl?: string;
-}) => {
-    if (!essayId) {
-        throw new Error('An essay ID must be provided to submit a correction.');
-    }
-
-    try {
-        const essayDocRef = doc(db, 'essays', essayId);
-
-        const updateData = {
-            ...correctionData,
-            status: 'corrected' as const, // Explicitly type the status
-            correctedAt: serverTimestamp(),
-        };
-
-        await updateDoc(essayDocRef, updateData);
-
-        console.log('Correction submitted successfully for essay: ', essayId);
-
-    } catch (error) {
-        console.error('Error submitting correction: ', error);
-        throw new Error('Failed to submit correction.');
-    }
-};
-
 
 /**
- * Fetches all essays for a specific student from the root "essays" collection.
+ * Fetches all essays for a given student.
  * @param studentId The UID of the student.
  * @returns A promise that resolves to an array of essays.
  */
-export const getEssaysForStudent = async (studentId: string): Promise<Essay[]> => {
-  if (!studentId) {
-    return [];
-  }
+export const getEssaysByStudent = async (studentId: string): Promise<Essay[]> => {
+  console.log("Fetching essays for student ID:", studentId);
   try {
-    const essaysCollection = collection(db, 'essays');
     const q = query(
-      essaysCollection,
+      collection(db, 'essays'),
       where('studentId', '==', studentId),
       orderBy('submittedAt', 'desc')
     );
     const querySnapshot = await getDocs(q);
-
-    const essays = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            submittedAt: data.submittedAt?.toDate(),
-        } as Essay;
-    });
-
+    const essays = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Essay[];
+    console.log("Fetched essays count:", essays.length);
     return essays;
   } catch (error) {
-    console.error('Error fetching essays: ', error);
-    // This will now require a composite index. The error message will guide the user.
-    throw new Error('Failed to fetch essays. You may need to create a composite index in Firestore. Check the console for a link.');
+    console.error('Error fetching student essays: ', error);
+    throw new Error('Failed to fetch student essays.');
+  }
+};
+
+export const getEssaysToCorrect = async (): Promise<Essay[]> => {
+  try {
+    const q = query(
+      collection(db, 'essays'),
+      where('status', '==', 'a corrigir'),
+      orderBy('submittedAt', 'asc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Essay[];
+  } catch (error) {
+    console.error('Error fetching essays to correct: ', error);
+    throw new Error('Failed to fetch essays to correct.');
+  }
+};
+
+export const getCorrectedEssays = async (): Promise<Essay[]> => {
+  try {
+    const q = query(
+      collection(db, 'essays'),
+      where('status', '==', 'corrected'),
+      orderBy('correctedAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Essay[];
+  } catch (error) {
+    console.error('Error fetching corrected essays: ', error);
+    throw new Error('Failed to fetch corrected essays.');
+  }
+};
+
+export const submitCorrection = async (essayId: string, correctionData: {
+  correctedFileUrl?: string;
+  audioFeedbackUrl?: string;
+  textFeedback?: string;
+}) => {
+  try {
+    const essayDocRef = doc(db, 'essays', essayId);
+    await updateDoc(essayDocRef, {
+      ...correctionData,
+      status: 'corrected',
+      correctedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error submitting correction: ', error);
+    throw new Error('Failed to submit correction.');
+  }
+};
+
+// New function to delete an essay and its associated files
+export const deleteEssay = async (essay: Essay) => {
+  if (!essay.id) {
+    throw new Error('Essay ID is missing.');
+  }
+
+  const batch = writeBatch(db);
+
+  // 1. Delete the essay document
+  const essayDocRef = doc(db, 'essays', essay.id);
+  batch.delete(essayDocRef);
+
+  // 2. Delete the original file from Storage
+  if (essay.fileUrl) {
+    try {
+      await deleteFileByUrl(essay.fileUrl);
+    } catch (error) {
+      console.error(`Failed to delete original file ${essay.fileUrl}:`, error);
+      // Decide if you want to stop the whole process if a file deletion fails
+      // For now, we'll log the error and continue
+    }
+  }
+
+  // 3. Delete the corrected file from Storage
+  if (essay.correctedFileUrl) {
+    try {
+      await deleteFileByUrl(essay.correctedFileUrl);
+    } catch (error) {
+      console.error(`Failed to delete corrected file ${essay.correctedFileUrl}:`, error);
+    }
+  }
+
+  // 4. Delete the audio feedback from Storage
+  if (essay.audioFeedbackUrl) {
+    try {
+      await deleteFileByUrl(essay.audioFeedbackUrl);
+    } catch (error) {
+      console.error(`Failed to delete audio feedback ${essay.audioFeedbackUrl}:`, error);
+    }
+  }
+
+  // Commit the batch
+  try {
+    await batch.commit();
+  } catch (error) {
+    console.error('Error deleting essay and associated files: ', error);
+    throw new Error('Failed to delete essay.');
   }
 };

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { StudentEssayList } from '@/components/dashboard/student/StudentEssayList';
-import { getEssaysForStudent, Essay } from '@/lib/services/essayService';
+import { getEssaysByStudent, Essay } from '@/lib/services/essayService';
 import { FilePlus2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EssaySubmissionWizard } from '@/components/dashboard/student/EssaySubmissionWizard';
@@ -36,7 +36,7 @@ export default function StudentDashboard() {
   const fetchEssays = useCallback(async (studentId: string) => {
     setIsLoading(true);
     try {
-      const studentEssays = await getEssaysForStudent(studentId);
+      const studentEssays = await getEssaysByStudent(studentId);
       setEssays(studentEssays);
     } catch (error) {
       console.error("Error fetching essays:", error);
