@@ -51,6 +51,13 @@ export function EditCorrectionModal({
     }
   }, [essay]);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setNewCorrectedFile(file);
+    }
+  };
+
   const handleUpdate = async () => {
     if (!essay?.id) {
       toast({
@@ -160,8 +167,9 @@ export function EditCorrectionModal({
           if (fileUrl) {
               await deleteFileByUrl(fileUrl);
               await submitCorrection(essay.id, { 
-                  ...essay, // Pass existing data
-                  ...updateData, // Overwrite the specific field
+                  textFeedback: essay.textFeedback,
+                  audioFeedbackUrl: fileType === 'audio' ? '' : essay.audioFeedbackUrl,
+                  correctedFileUrl: fileType === 'correctedFile' ? '' : essay.correctedFileUrl,
               });
               toast({ title: 'Arquivo Removido', description: 'O arquivo foi removido com sucesso.' });
               onCorrectionUpdated(); // This will re-fetch and re-render
