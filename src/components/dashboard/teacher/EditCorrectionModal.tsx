@@ -51,13 +51,6 @@ export function EditCorrectionModal({
     }
   }, [essay]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setNewCorrectedFile(file);
-    }
-  };
-
   const handleUpdate = async () => {
     if (!essay?.id) {
       toast({
@@ -154,24 +147,21 @@ export function EditCorrectionModal({
   
       try {
           let fileUrl: string | undefined;
-          let updateData: any = {};
+          let updateData: Partial<Essay> = {};
   
           if (fileType === 'audio' && essay.audioFeedbackUrl) {
               fileUrl = essay.audioFeedbackUrl;
-              updateData = { audioFeedbackUrl: '' };
+              updateData.audioFeedbackUrl = '';
           } else if (fileType === 'correctedFile' && essay.correctedFileUrl) {
               fileUrl = essay.correctedFileUrl;
-              updateData = { correctedFileUrl: '' };
+              updateData.correctedFileUrl = '';
           }
   
           if (fileUrl) {
               await deleteFileByUrl(fileUrl);
               await submitCorrection(essay.id, { 
-                  ...updateData, 
-                  textFeedback: essay.textFeedback || "",
-                  // We must provide all fields on update
-                  audioFeedbackUrl: fileType === 'audio' ? '' : essay.audioFeedbackUrl,
-                  correctedFileUrl: fileType === 'correctedFile' ? '' : essay.correctedFileUrl,
+                  ...essay, // Pass existing data
+                  ...updateData, // Overwrite the specific field
               });
               toast({ title: 'Arquivo Removido', description: 'O arquivo foi removido com sucesso.' });
               onCorrectionUpdated(); // This will re-fetch and re-render
@@ -218,7 +208,6 @@ export function EditCorrectionModal({
             )}
             <AudioRecorder
               onRecordingComplete={setAudioBlob}
-              disabled={isLoading}
             />
              <p className="text-xs text-muted-foreground">
                 Grave um novo áudio para substituir o existente ou remova o atual.

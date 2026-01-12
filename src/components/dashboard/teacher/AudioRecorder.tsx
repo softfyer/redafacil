@@ -9,11 +9,12 @@ type RecordingStatus = 'inactive' | 'recording' | 'recorded' | 'denied';
 
 type AudioRecorderProps = {
   onRecordingComplete: (audioBlob: Blob | null) => void;
+  disabled?: boolean; // Add disabled prop
 };
 
 const MAX_RECORDING_TIME_MS = 300000; // 5 minutes
 
-export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
+export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderProps) {
   const [status, setStatus] = useState<RecordingStatus>('inactive');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -118,7 +119,7 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
     <div className="space-y-3 p-4 border rounded-lg bg-background">
         <div className="flex items-center justify-center w-full">
             {status === 'inactive' && (
-                <Button onClick={startRecording} variant="outline" className="w-full">
+                <Button onClick={startRecording} variant="outline" className="w-full" disabled={disabled}>
                     <Mic className="mr-2 h-4 w-4" />
                     Gravar Áudio (Limite de 5 min)
                 </Button>
@@ -126,7 +127,7 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
 
             {status === 'recording' && (
                 <div className="w-full flex flex-col items-center gap-2">
-                    <Button onClick={stopRecording} variant="destructive" className="w-full">
+                    <Button onClick={stopRecording} variant="destructive" className="w-full" disabled={disabled}>
                         <Square className="mr-2 h-4 w-4 fill-current" />
                         Parar Gravação
                     </Button>
@@ -142,7 +143,7 @@ export function AudioRecorder({ onRecordingComplete }: AudioRecorderProps) {
             {status === 'recorded' && audioUrl && (
                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
                     <audio src={audioUrl} controls className="w-full flex-1" />
-                    <Button onClick={resetRecording} variant="ghost" size="icon">
+                    <Button onClick={resetRecording} variant="ghost" size="icon" disabled={disabled}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Apagar gravação</span>
                     </Button>
