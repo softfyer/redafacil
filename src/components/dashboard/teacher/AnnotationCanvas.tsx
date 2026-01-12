@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eraser } from 'lucide-react';
+import { Eraser, ZoomIn, ZoomOut, Redo2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
@@ -27,6 +27,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentPathRef = useRef<{ x: number; y: number }[]>([]);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
   const storageKey = `annotations_${essayId}`;
@@ -46,13 +47,18 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
         clientY = event.clientY;
     }
     
-    // Adjust for canvas scaling
+    // Adjust for canvas scaling and zoom
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
+    // The coordinates need to be adjusted for the CSS zoom of the canvas element
+    // We calculate the mouse position relative to the element and then scale it to the canvas resolution
+    const canvasX = (clientX - rect.left) * scaleX;
+    const canvasY = (clientY - rect.top) * scaleY;
+    
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
+      x: canvasX,
+      y: canvasY,
     };
   };
 
@@ -99,7 +105,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
     
     image.onload = () => {
       originalImageRef.current = image;
-      // Set canvas size to match image
+      // Set canvas resolution to match image
       canvas.width = image.naturalWidth;
       canvas.height = image.naturalHeight;
       
@@ -195,8 +201,8 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
   };
 
   return (
-    <div className="flex flex-col gap-4 items-center w-full">
-      <div className="flex flex-wrap gap-2 items-center p-2 border rounded-md">
+    <div className="flex flex-col gap-4 items-center w-full h-full">
+      <div className="flex flex-wrap gap-2 items-center p-2 border rounded-md bg-card">
         <Label>Cor:</Label>
         <div className="flex gap-1">
             {colors.map(color => (
@@ -222,13 +228,21 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
             />
         </div>
         <Separator orientation="vertical" className="h-6 mx-2"/>
+        <div className="flex items-center gap-2">
+            <Label>Zoom:</Label>
+            <Button variant="outline" size="icon" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => setZoomLevel(1)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
+            <span className="text-sm font-mono w-12 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
+        </div>
+        <Separator orientation="vertical" className="h-6 mx-2"/>
         <Button variant="outline" size="icon" onClick={handleClearAnnotations}>
           <Eraser className="w-4 h-4" />
           <span className="sr-only">Limpar anotações</span>
         </Button>
       </div>
 
-      <div className="w-full max-w-full overflow-auto border bg-muted">
+      <div className="w-full flex-1 overflow-auto border bg-muted">
         <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}
@@ -238,8 +252,11 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
             onTouchStart={startDrawing}
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
-            className="cursor-crosshair"
-            style={{ touchAction: 'none' }} // Prevents page scroll on touch devices
+            className="cursor-crosshair origin-top-left"
+            style={{ 
+                touchAction: 'none', // Prevents page scroll on touch devices
+                transform: `scale(${zoomLevel})`,
+            }} 
         />
       </div>
        <Button onClick={handleSave}>Salvar Anotações</Button>

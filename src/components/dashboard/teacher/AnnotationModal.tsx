@@ -32,11 +32,11 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave }: 
         <DialogHeader>
           <DialogTitle>Anotar na Redação</DialogTitle>
           <DialogDescription>
-            Use as ferramentas para desenhar diretamente na imagem. Suas anotações são salvas automaticamente. Clique em Salvar Anotações para gerar a imagem final.
+            Use as ferramentas para desenhar e aplicar zoom. Suas anotações são salvas localmente. Clique em Salvar Anotações para gerar a imagem final.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto p-0 m-0">
+        <div className="flex-1 min-h-0">
           <AnnotationCanvas imageUrl={imageUrl} essayId={essayId} onSave={onSave} />
         </div>
 
