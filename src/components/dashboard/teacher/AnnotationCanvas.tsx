@@ -3,8 +3,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eraser, Pencil } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Eraser } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
@@ -40,8 +39,12 @@ export function AnnotationCanvas({ imageUrl, onSave }: AnnotationCanvasProps) {
     if (!ctx) return;
 
     const image = new Image();
-    image.crossOrigin = "anonymous"; // Handle CORS for images from other domains
-    image.src = imageUrl;
+    image.crossOrigin = "anonymous";
+    
+    // Use the proxy API route to fetch the image and bypass CORS issues
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+    image.src = proxyUrl;
+    
     image.onload = () => {
       originalImageRef.current = image;
       // Set canvas size to match image
@@ -49,8 +52,8 @@ export function AnnotationCanvas({ imageUrl, onSave }: AnnotationCanvasProps) {
       canvas.height = image.naturalHeight;
       ctx.drawImage(image, 0, 0);
     };
-    image.onerror = () => {
-        console.error("Failed to load image for canvas.");
+    image.onerror = (e) => {
+        console.error("Failed to load image for canvas via proxy.", e);
     }
   }, [imageUrl]);
 
