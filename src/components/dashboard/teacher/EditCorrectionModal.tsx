@@ -153,24 +153,24 @@ export function EditCorrectionModal({
       setLoadingMessage(`Removendo ${fileType === 'audio' ? 'áudio' : 'arquivo'}...`);
   
       try {
-          let fileUrl: string | undefined;
-          let updateData: Partial<Essay> = {};
-  
+          const updateData: Partial<Essay> = {};
+          let fileUrlToRemove: string | undefined;
+
           if (fileType === 'audio' && essay.audioFeedbackUrl) {
-              fileUrl = essay.audioFeedbackUrl;
-              updateData.audioFeedbackUrl = '';
+              fileUrlToRemove = essay.audioFeedbackUrl;
+              updateData.audioFeedbackUrl = ''; // Set field to empty
           } else if (fileType === 'correctedFile' && essay.correctedFileUrl) {
-              fileUrl = essay.correctedFileUrl;
-              updateData.correctedFileUrl = '';
+              fileUrlToRemove = essay.correctedFileUrl;
+              updateData.correctedFileUrl = ''; // Set field to empty
           }
   
-          if (fileUrl) {
-              await deleteFileByUrl(fileUrl);
-              await submitCorrection(essay.id, { 
-                  textFeedback: essay.textFeedback,
-                  audioFeedbackUrl: fileType === 'audio' ? '' : essay.audioFeedbackUrl,
-                  correctedFileUrl: fileType === 'correctedFile' ? '' : essay.correctedFileUrl,
-              });
+          if (fileUrlToRemove) {
+              // First, delete the file from storage
+              await deleteFileByUrl(fileUrlToRemove);
+              
+              // Then, update the document in Firestore to remove the URL
+              await submitCorrection(essay.id, updateData);
+
               toast({ title: 'Arquivo Removido', description: 'O arquivo foi removido com sucesso.' });
               onCorrectionUpdated(); // This will re-fetch and re-render
           }
@@ -216,6 +216,7 @@ export function EditCorrectionModal({
             )}
             <AudioRecorder
               onRecordingComplete={setAudioBlob}
+              disabled={isLoading}
             />
              <p className="text-xs text-muted-foreground">
                 Grave um novo áudio para substituir o existente ou remova o atual.
