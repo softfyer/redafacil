@@ -98,6 +98,39 @@ export const uploadCorrectedEssayFile = async (file: File, studentId: string, es
 };
 
 /**
+ * Uploads an annotated image blob to a specified path in Firebase Storage.
+ * @param imageBlob The image blob to upload.
+ * @param studentId The UID of the student.
+ * @param essayId The ID of the essay document.
+ * @returns A promise that resolves to the public download URL of the image.
+ */
+export const uploadAnnotatedImage = async (imageBlob: Blob, studentId: string, essayId: string): Promise<string> => {
+    if (!imageBlob) {
+        throw new Error('An image blob must be provided to upload.');
+    }
+    if (!studentId || !essayId) {
+        throw new Error('Student ID and Essay ID must be provided.');
+    }
+
+    const fileName = `${essayId}-annotated.png`;
+    const storagePath = `essays/${studentId}/${essayId}/${fileName}`;
+
+    try {
+        const storageRef = ref(storage, storagePath);
+        console.log(`Uploading annotated image to: ${storagePath}`);
+
+        const snapshot = await uploadBytes(storageRef, imageBlob, { contentType: 'image/png' });
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        console.log('Annotated image uploaded successfully! URL:', downloadURL);
+        return downloadURL;
+    } catch (error) {
+        console.error('Error uploading annotated image:', error);
+        throw new Error('Annotated image upload failed. Please try again.');
+    }
+};
+
+/**
  * Uploads a feedback audio file (blob) to a specified path in Firebase Storage.
  * @param audioBlob The audio blob to upload.
  * @param studentId The UID of the student.
