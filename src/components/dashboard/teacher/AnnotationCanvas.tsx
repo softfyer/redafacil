@@ -1,61 +1,36 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Eraser } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
+interface Stroke {
+  points: { x: number; y: number }[];
+  color: string;
+  size: number;
+}
+
 interface AnnotationCanvasProps {
   imageUrl: string;
+  essayId: string;
   onSave: (blob: Blob) => void;
 }
 
-export function AnnotationCanvas({ imageUrl, onSave }: AnnotationCanvasProps) {
+export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushColor, setBrushColor] = useState('#FF0000'); // Default to red
   const [brushSize, setBrushSize] = useState(3);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const currentPathRef = useRef<{ x: number; y: number }[]>([]);
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
+  const storageKey = `annotations_${essayId}`;
 
-  // Function to redraw the original image and any saved paths
-  const redrawCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx && originalImageRef.current) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-        ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height); // Draw original image
-    }
-  };
-  
-  // Load image and set canvas dimensions
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    
-    // Use the proxy API route to fetch the image and bypass CORS issues
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
-    image.src = proxyUrl;
-    
-    image.onload = () => {
-      originalImageRef.current = image;
-      // Set canvas size to match image
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      ctx.drawImage(image, 0, 0);
-    };
-    image.onerror = (e) => {
-        console.error("Failed to load image for canvas via proxy.", e);
-    }
-  }, [imageUrl]);
 
   const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
@@ -81,38 +56,137 @@ export function AnnotationCanvas({ imageUrl, onSave }: AnnotationCanvasProps) {
     };
   };
 
-  const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
-    const ctx = canvasRef.current?.getContext('2d');
+  const redrawCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx || !originalImageRef.current) return;
+
+    // Clear and draw the base image
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height);
+
+    // Redraw all saved strokes
+    strokes.forEach(stroke => {
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      if (stroke.points.length > 0) {
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        stroke.points.forEach(point => {
+          ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+      }
+    });
+  }, [strokes]);
+
+  // Load image and set canvas dimensions
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    
+    // Use the proxy API route to fetch the image and bypass CORS issues
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+    image.src = proxyUrl;
+    
+    image.onload = () => {
+      originalImageRef.current = image;
+      // Set canvas size to match image
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      
+      // Load existing strokes from localStorage
+      try {
+        const savedStrokes = localStorage.getItem(storageKey);
+        if (savedStrokes) {
+          const parsedStrokes = JSON.parse(savedStrokes);
+          setStrokes(parsedStrokes);
+        } else {
+            setStrokes([]);
+        }
+      } catch (error) {
+        console.error("Failed to parse strokes from localStorage", error);
+        setStrokes([]);
+      }
+    };
+    image.onerror = (e) => {
+        console.error("Failed to load image for canvas via proxy.", e);
+    }
+  }, [imageUrl, essayId, storageKey]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [strokes, redrawCanvas]);
+
+  const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+    setIsDrawing(true);
     const { x, y } = getCoordinates(event);
+    currentPathRef.current = [{ x, y }];
+
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.strokeStyle = brushColor;
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    setIsDrawing(true);
   };
 
   const draw = (event: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
+    const { x, y } = getCoordinates(event);
+    currentPathRef.current.push({ x, y });
+
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
-    
-    const { x, y } = getCoordinates(event);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
   const stopDrawing = () => {
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx) return;
-    ctx.closePath();
+    if (!isDrawing) return;
     setIsDrawing(false);
+    
+    const newStroke: Stroke = {
+        points: currentPathRef.current,
+        color: brushColor,
+        size: brushSize,
+    };
+    
+    const updatedStrokes = [...strokes, newStroke];
+    setStrokes(updatedStrokes);
+    
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(updatedStrokes));
+    } catch (error) {
+        console.error("Failed to save strokes to localStorage", error);
+    }
+
+    currentPathRef.current = [];
   };
 
+  const handleClearAnnotations = () => {
+    setStrokes([]);
+    try {
+        localStorage.removeItem(storageKey);
+    } catch (error) {
+        console.error("Failed to remove strokes from localStorage", error);
+    }
+    // This will trigger the useEffect to redraw the canvas without strokes
+  }
+
   const handleSave = () => {
+    // Redraw one last time to ensure everything is on the canvas
+    redrawCanvas();
     canvasRef.current?.toBlob((blob) => {
       if (blob) {
         onSave(blob);
@@ -148,7 +222,7 @@ export function AnnotationCanvas({ imageUrl, onSave }: AnnotationCanvasProps) {
             />
         </div>
         <Separator orientation="vertical" className="h-6 mx-2"/>
-        <Button variant="outline" size="icon" onClick={redrawCanvas}>
+        <Button variant="outline" size="icon" onClick={handleClearAnnotations}>
           <Eraser className="w-4 h-4" />
           <span className="sr-only">Limpar anotações</span>
         </Button>

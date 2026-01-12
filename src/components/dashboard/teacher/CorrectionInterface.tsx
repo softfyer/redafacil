@@ -27,8 +27,13 @@ type CorrectionInterfaceProps = {
 // Função para verificar se a URL é de uma imagem
 const isImageUrl = (url: string) => {
     // Remove query parameters from URL (like Firebase tokens) before checking extension
-    const path = new URL(url).pathname;
-    return /\.(jpeg|jpg|png)$/i.test(path);
+    try {
+        const path = new URL(url).pathname;
+        return /\.(jpeg|jpg|png)$/i.test(path);
+    } catch (e) {
+        console.error("Invalid URL for isImageUrl check:", url, e);
+        return false;
+    }
 };
 
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
@@ -194,7 +199,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
 
             <div className="space-y-2">
               <Label>Feedback por Áudio (Opcional)</Label>
-              <AudioRecorder onRecordingComplete={setAudioBlob} />
+              <AudioRecorder onRecordingComplete={setAudioBlob} disabled={isLoading}/>
             </div>
 
             <div className="space-y-2">
@@ -244,12 +249,15 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
           </Button>
         </div>
       </div>
-      <AnnotationModal
-        isOpen={isAnnotationModalOpen}
-        onClose={() => setIsAnnotationModalOpen(false)}
-        imageUrl={essay.fileUrl}
-        onSave={handleAnnotationSave}
-      />
+      {essay.id && isImageUrl(essay.fileUrl) && (
+        <AnnotationModal
+            isOpen={isAnnotationModalOpen}
+            onClose={() => setIsAnnotationModalOpen(false)}
+            imageUrl={essay.fileUrl}
+            essayId={essay.id}
+            onSave={handleAnnotationSave}
+        />
+      )}
     </>
   );
 }

@@ -62,10 +62,19 @@ export function EditCorrectionModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (essay) {
+    if (essay && isOpen) {
       setTextFeedback(essay.textFeedback || '');
+    } else if (!isOpen) {
+      // Reset state when modal is closed
+      setTextFeedback('');
+      setAudioBlob(null);
+      setNewCorrectedFile(null);
+      setAnnotatedImageBlob(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-  }, [essay]);
+  }, [essay, isOpen]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -146,8 +155,8 @@ export function EditCorrectionModal({
       setLoadingMessage('Finalizando atualização...');
       const updatedData: Partial<Essay> = {
         textFeedback,
-        audioFeedbackUrl: audioFeedbackUrl || '',
-        correctedFileUrl: correctedFileUrl || '',
+        audioFeedbackUrl: audioFeedbackUrl,
+        correctedFileUrl: correctedFileUrl,
       };
 
       await submitCorrection(essay.id, updatedData);
@@ -158,7 +167,7 @@ export function EditCorrectionModal({
       });
 
       onCorrectionUpdated();
-      handleClose();
+      onClose();
     } catch (error: any) {
       console.error('Failed to update correction: ', error);
       toast({
@@ -171,17 +180,6 @@ export function EditCorrectionModal({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleClose = () => {
-    setTextFeedback('');
-    setAudioBlob(null);
-    setNewCorrectedFile(null);
-    setAnnotatedImageBlob(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    onClose();
   };
   
   const handleRemoveFile = async (fileType: 'audio' | 'correctedFile') => {
@@ -222,7 +220,7 @@ export function EditCorrectionModal({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar Correção: {essay?.title}</DialogTitle>
@@ -317,11 +315,12 @@ export function EditCorrectionModal({
       </DialogContent>
     </Dialog>
 
-    {essay?.fileUrl && (
+    {essay?.id && essay?.fileUrl && isImageUrl(essay.fileUrl) && (
         <AnnotationModal
             isOpen={isAnnotationModalOpen}
             onClose={() => setIsAnnotationModalOpen(false)}
             imageUrl={essay.fileUrl}
+            essayId={essay.id}
             onSave={handleAnnotationSave}
         />
     )}

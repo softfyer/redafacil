@@ -16,10 +16,11 @@ interface AnnotationModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
+  essayId: string;
   onSave: (blob: Blob) => void;
 }
 
-export function AnnotationModal({ isOpen, onClose, imageUrl, onSave }: AnnotationModalProps) {
+export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave }: AnnotationModalProps) {
 
   // We need a way to pass the save action from the canvas up to the modal's parent.
   // We'll pass the `onSave` prop directly to the canvas.
@@ -31,12 +32,12 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, onSave }: Annotatio
         <DialogHeader>
           <DialogTitle>Anotar na Redação</DialogTitle>
           <DialogDescription>
-            Use as ferramentas para desenhar diretamente na imagem. Suas anotações serão salvas como uma nova imagem.
+            Use as ferramentas para desenhar diretamente na imagem. Suas anotações são salvas automaticamente. Clique em Salvar Anotações para gerar a imagem final.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-auto p-0 m-0">
-          <AnnotationCanvas imageUrl={imageUrl} onSave={onSave} />
+          <AnnotationCanvas imageUrl={imageUrl} essayId={essayId} onSave={onSave} />
         </div>
 
         <DialogFooter>
