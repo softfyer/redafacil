@@ -17,6 +17,7 @@ import { ClientOnly } from '@/components/ui/client-only';
 import { uploadCorrectedEssayFile, uploadFeedbackAudio, uploadAnnotatedImage } from '@/lib/services/storageService';
 import { submitCorrection } from '@/lib/services/essayService';
 import { AnnotationModal } from './AnnotationModal'; // Importar o novo componente
+import { useUser } from '@/contexts/UserContext';
 
 type CorrectionInterfaceProps = {
   essay: Essay & { studentName: string };
@@ -46,6 +47,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
   const [annotatedImageBlob, setAnnotatedImageBlob] = useState<Blob | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, userData } = useUser();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,6 +69,10 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
         console.error("Essay ID or Student ID is missing.");
         toast({ title: "Erro Crítico", description: "Não foi possível identificar a redação ou o aluno.", variant: "destructive" });
         return;
+    }
+    if (!user || !userData) {
+      toast({ title: "Erro de Autenticação", description: "Não foi possível identificar o professor.", variant: "destructive" });
+      return;
     }
 
     setIsLoading(true);
@@ -92,12 +98,10 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
 
         // 3. Dynamically build submission data
         setLoadingMessage('Finalizando correção...');
-        const correctionData: {
-            textFeedback: string;
-            audioFeedbackUrl?: string;
-            correctedFileUrl?: string;
-        } = {
+        const correctionData: Partial<Essay> = {
             textFeedback,
+            teacherId: user.uid,
+            teacherName: userData.name,
         };
 
         if (audioFeedbackUrl) correctionData.audioFeedbackUrl = audioFeedbackUrl;

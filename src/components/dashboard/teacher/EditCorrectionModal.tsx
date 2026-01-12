@@ -25,6 +25,7 @@ import {
 import { submitCorrection } from '@/lib/services/essayService';
 import { AudioRecorder } from './AudioRecorder';
 import { AnnotationModal } from './AnnotationModal';
+import { useUser } from '@/contexts/UserContext';
 
 type EditCorrectionModalProps = {
   essay: Essay | null;
@@ -60,6 +61,7 @@ export function EditCorrectionModal({
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user, userData } = useUser();
 
   useEffect(() => {
     if (essay && isOpen) {
@@ -113,6 +115,14 @@ export function EditCorrectionModal({
       });
       return;
     }
+    if (!user || !userData) {
+      toast({
+        title: 'Erro de Autenticação',
+        description: 'Não foi possível identificar o professor.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsLoading(true);
 
@@ -157,6 +167,8 @@ export function EditCorrectionModal({
         textFeedback,
         audioFeedbackUrl: audioFeedbackUrl,
         correctedFileUrl: correctedFileUrl,
+        teacherId: user.uid,
+        teacherName: userData.name,
       };
 
       await submitCorrection(essay.id, updatedData);

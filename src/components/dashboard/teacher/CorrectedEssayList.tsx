@@ -27,6 +27,7 @@ export type EnrichedEssay = Essay & {
   studentName: string;
   submittedAt: Date;
   correctedAt?: Date;
+  teacherName?: string;
 };
 
 export function CorrectedEssayList() {
@@ -80,6 +81,7 @@ export function CorrectedEssayList() {
           studentName: studentNames.get(essay.studentId) || 'Aluno Desconhecido',
           submittedAt: essay.submittedAt.toDate(),
           correctedAt: essay.correctedAt?.toDate(),
+          teacherName: essay.teacherName || 'Não identificado'
         }));
 
         setEssays(enrichedEssays);
@@ -115,7 +117,8 @@ export function CorrectedEssayList() {
   const filteredEssays = essays.filter(
     (essay) =>
       essay.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (essay.studentName && essay.studentName.toLowerCase().includes(searchTerm.toLowerCase()))
+      (essay.studentName && essay.studentName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (essay.teacherName && essay.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -129,7 +132,7 @@ export function CorrectedEssayList() {
             <div className="relative pt-4">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-                placeholder="Pesquisar por título ou aluno..."
+                placeholder="Pesquisar por título, aluno ou professor..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -148,8 +151,8 @@ export function CorrectedEssayList() {
                 <TableRow>
                     <TableHead>Aluno</TableHead>
                     <TableHead className="hidden sm:table-cell">Título</TableHead>
+                    <TableHead className="hidden lg:table-cell">Professor</TableHead>
                     <TableHead className="hidden md:table-cell">Data da Correção</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
                 </TableHeader>
@@ -158,16 +161,11 @@ export function CorrectedEssayList() {
                     <TableRow key={essay.id}>
                     <TableCell className="font-medium">{essay.studentName}</TableCell>
                     <TableCell className="hidden sm:table-cell max-w-xs truncate">{essay.title}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{essay.teacherName}</TableCell>
                     <TableCell className="hidden md:table-cell">
                         <ClientOnly>
                         {essay.correctedAt ? format(essay.correctedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
                         </ClientOnly>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 border-green-300 dark:border-green-700">
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                        Corrigida
-                        </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEditClick(essay)}>

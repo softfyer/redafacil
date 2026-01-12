@@ -32,6 +32,8 @@ export interface Essay {
   audioFeedbackUrl?: string;
   textFeedback?: string;
   correctedAt?: any; // Timestamp for when the correction was submitted
+  teacherId?: string; // ID of the correcting teacher
+  teacherName?: string; // Name of the correcting teacher
 }
 
 /**
@@ -158,23 +160,32 @@ export const getCorrectedEssays = async (): Promise<Essay[]> => {
   }
 };
 
-export const submitCorrection = async (essayId: string, correctionData: {
-  correctedFileUrl?: string;
-  audioFeedbackUrl?: string;
-  textFeedback?: string;
-}) => {
+export const submitCorrection = async (
+  essayId: string,
+  correctionData: Partial<Essay>
+) => {
   try {
     const essayDocRef = doc(db, 'essays', essayId);
-    await updateDoc(essayDocRef, {
-      ...correctionData,
-      status: 'corrected',
-      correctedAt: serverTimestamp(),
-    });
+    
+    // Ensure status and correctedAt are set for new corrections
+    const dataToUpdate: Partial<Essay> & { correctedAt?: any } = {
+        ...correctionData,
+        status: 'corrected',
+    };
+    
+    // Only set correctedAt if it's not already being updated (e.g., during an edit)
+    if (!correctionData.correctedAt) {
+        dataToUpdate.correctedAt = serverTimestamp();
+    }
+
+    await updateDoc(essayDocRef, dataToUpdate);
+
   } catch (error) {
     console.error('Error submitting correction: ', error);
     throw new Error('Failed to submit correction.');
   }
 };
+
 
 // New function to delete an essay and its associated files
 export const deleteEssay = async (essay: Essay) => {
