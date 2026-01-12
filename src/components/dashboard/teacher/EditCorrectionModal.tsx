@@ -14,21 +14,34 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   uploadCorrectedEssayFile,
   uploadFeedbackAudio,
   deleteFileByUrl,
+  uploadAnnotatedImage,
 } from '@/lib/services/storageService';
 import { submitCorrection } from '@/lib/services/essayService';
 import { AudioRecorder } from './AudioRecorder';
+import { AnnotationModal } from './AnnotationModal';
 
 type EditCorrectionModalProps = {
   essay: Essay | null;
   isOpen: boolean;
   onClose: () => void;
   onCorrectionUpdated: () => void;
+};
+
+const isImageUrl = (url: string) => {
+    if (!url) return false;
+    try {
+        const path = new URL(url).pathname;
+        return /\.(jpeg|jpg|png)$/i.test(path);
+    } catch (e) {
+        console.error("Invalid URL for isImageUrl check:", url, e);
+        return false;
+    }
 };
 
 export function EditCorrectionModal({
@@ -42,6 +55,9 @@ export function EditCorrectionModal({
   const [newCorrectedFile, setNewCorrectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Atualizando...');
+  const [isAnnotationModalOpen, setIsAnnotationModalOpen] = useState(false);
+  const [annotatedImageBlob, setAnnotatedImageBlob] = useState<Blob | null>(null);
+
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,14 +71,27 @@ export function EditCorrectionModal({
     const file = event.target.files?.[0];
     if (file) {
       setNewCorrectedFile(file);
+      setAnnotatedImageBlob(null); // Clear annotated image if a file is manually uploaded
     }
   };
 
+  const handleAnnotationSave = (imageBlob: Blob) => {
+    setAnnotatedImageBlob(imageBlob);
+    setIsAnnotationModalOpen(false);
+    setNewCorrectedFile(null); // Clear manual file if an annotation is saved
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    toast({
+        title: "Anotações salvas",
+        description: "A nova imagem com suas anotações está pronta para ser enviada."
+    });
+  };
+
   const handleUpdate = async () => {
-    if (!essay?.id) {
+    if (!essay?.id || !essay.studentId) {
       toast({
         title: 'Erro',
-        description: 'ID da redação não encontrado.',
+        description: 'ID da redação ou do aluno não encontrado.',
         variant: 'destructive',
       });
       return;
@@ -82,6 +111,7 @@ export function EditCorrectionModal({
       let audioFeedbackUrl = essay.audioFeedbackUrl;
       let correctedFileUrl = essay.correctedFileUrl;
 
+      // Handle Audio Upload
       if (audioBlob) {
         setLoadingMessage('Enviando novo áudio...');
         if (essay.audioFeedbackUrl) {
@@ -94,7 +124,14 @@ export function EditCorrectionModal({
         );
       }
 
-      if (newCorrectedFile) {
+      // Handle File/Annotation Upload (prioritize annotation)
+      if (annotatedImageBlob) {
+        setLoadingMessage('Enviando imagem anotada...');
+        if (essay.correctedFileUrl) {
+           await deleteFileByUrl(essay.correctedFileUrl);
+        }
+        correctedFileUrl = await uploadAnnotatedImage(annotatedImageBlob, essay.studentId, essay.id);
+      } else if (newCorrectedFile) {
         setLoadingMessage('Enviando novo arquivo...');
         if (essay.correctedFileUrl) {
           await deleteFileByUrl(essay.correctedFileUrl);
@@ -107,7 +144,7 @@ export function EditCorrectionModal({
       }
 
       setLoadingMessage('Finalizando atualização...');
-      const updatedData = {
+      const updatedData: Partial<Essay> = {
         textFeedback,
         audioFeedbackUrl: audioFeedbackUrl || '',
         correctedFileUrl: correctedFileUrl || '',
@@ -140,6 +177,7 @@ export function EditCorrectionModal({
     setTextFeedback('');
     setAudioBlob(null);
     setNewCorrectedFile(null);
+    setAnnotatedImageBlob(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -183,15 +221,14 @@ export function EditCorrectionModal({
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Editar Correção: {essay?.title}</DialogTitle>
         </DialogHeader>
-        {/* The main scrollable content area */}
         <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
 
-          {/* Text Feedback */}
           <div className="space-y-2">
             <Label htmlFor="edit-text-feedback">Feedback por Texto</Label>
             <Textarea
@@ -203,7 +240,6 @@ export function EditCorrectionModal({
             />
           </div>
 
-          {/* Audio Feedback */}
           <div className="space-y-2">
             <Label>Feedback por Áudio</Label>
             {essay?.audioFeedbackUrl && !audioBlob && (
@@ -223,12 +259,11 @@ export function EditCorrectionModal({
             </p>
           </div>
 
-          {/* Corrected File */}
           <div className="space-y-2">
             <Label htmlFor="edit-corrected-file">
-              Anexar Nova Redação Corrigida
+              Redação Corrigida
             </Label>
-            {essay?.correctedFileUrl && !newCorrectedFile && (
+            {essay?.correctedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
                <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
                  <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate">
                     Ver arquivo corrigido atual
@@ -238,16 +273,27 @@ export function EditCorrectionModal({
                  </Button>
                </div>
             )}
+            {isImageUrl(essay?.fileUrl || '') && (
+                <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} className="w-full mb-2">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Anotar na Imagem Original
+                </Button>
+            )}
+             {annotatedImageBlob && (
+                <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
+                    Uma nova imagem com anotações está pronta para ser enviada e substituirá o arquivo corrigido atual.
+                </div>
+            )}
             <Input
               id="edit-corrected-file"
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              disabled={isLoading}
+              disabled={isLoading || !!annotatedImageBlob}
               accept=".pdf,.doc,.docx,.png,.jpg"
             />
              <p className="text-xs text-muted-foreground">
-                Envie um novo arquivo para substituir o existente ou remova o atual.
+                Envie um novo arquivo para substituir o existente. Se anotar na imagem, este campo será desabilitado.
             </p>
           </div>
         </div>
@@ -270,5 +316,15 @@ export function EditCorrectionModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {essay?.fileUrl && (
+        <AnnotationModal
+            isOpen={isAnnotationModalOpen}
+            onClose={() => setIsAnnotationModalOpen(false)}
+            imageUrl={essay.fileUrl}
+            onSave={handleAnnotationSave}
+        />
+    )}
+    </>
   );
 }
