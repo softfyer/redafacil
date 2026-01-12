@@ -26,7 +26,9 @@ type CorrectionInterfaceProps = {
 
 // Função para verificar se a URL é de uma imagem
 const isImageUrl = (url: string) => {
-  return /\.(jpeg|jpg|png)$/i.test(url);
+    // Remove query parameters from URL (like Firebase tokens) before checking extension
+    const path = new URL(url).pathname;
+    return /\.(jpeg|jpg|png)$/i.test(path);
 };
 
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
