@@ -12,7 +12,7 @@ import { Send, Save, Loader2, Download } from 'lucide-react';
 import type { Essay } from '@/lib/services/essayService';
 import { addEssay, updateEssay } from '@/lib/services/essayService';
 import { uploadEssayFile } from '@/lib/services/storageService';
-import { createEssayNotification } from '@/lib/services/notificationService'; // Import notification service
+import { createEssayNotification } from '@/lib/services/notificationService';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -61,7 +61,6 @@ type EssaySubmissionWizardProps = {
   essayToEdit: Essay | null;
 };
 
-// Helper to get file name from URL
 const getFileNameFromUrl = (url: string) => {
     try {
         const decodedUrl = decodeURIComponent(url);
@@ -138,10 +137,16 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 targetExam: values.targetExam,
                 promptCommands: values.promptCommands,
                 fileUrl: newFileUrl || oldFileUrl,
+                status: 'a corrigir', // Redefine o status para uma nova correção
+                submittedAt: new Date(), // Atualiza a data de envio para agora
             };
 
             await updateEssay(essayDataToUpdate, newFileUrl, oldFileUrl);
-            toast({ title: 'Redação atualizada com sucesso!', description: 'Suas alterações foram salvas.' });
+            
+            // Cria uma notificação para o professor sobre o reenvio
+            await createEssayNotification(essayDataToUpdate.title, essayDataToUpdate.id!);
+
+            toast({ title: 'Redação reenviada com sucesso!', description: 'Suas alterações foram salvas e a redação está novamente na fila para correção.' });
 
         } else {
             // --- CREATING NEW ESSAY LOGIC ---
@@ -161,13 +166,9 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 status: 'a corrigir' as const,
             };
 
-            // 1. Create essay document to get an ID
             const essayId = await addEssay(user.uid, essayDocData);
-            
-            // 2. Upload file with the new essay ID
             const newFileUrl = await uploadEssayFile(fileToUpload, user.uid, essayId);
 
-            // 3. Update essay document with the final file URL
             const finalEssayData: Essay = {
                 id: essayId,
                 studentId: user.uid,
@@ -176,7 +177,6 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
             };
             await updateEssay(finalEssayData);
 
-            // 4. Create a notification for the teacher
             await createEssayNotification(finalEssayData.title, essayId);
 
             toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
@@ -329,7 +329,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isLoading}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEditing ? <Save className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />)}
-                    {isLoading ? (isEditing ? 'Salvando...' : 'Enviando...') : (isEditing ? 'Salvar Alterações' : 'Enviar Redação')}
+                    {isLoading ? (isEditing ? 'Salvando...' : 'Enviando...') : (isEditing ? 'Salvar e Reenviar' : 'Enviar Redação')}
                 </Button>
             </DialogFooter>
         </form>
