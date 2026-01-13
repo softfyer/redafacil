@@ -12,6 +12,7 @@ import { Send, Save, Loader2, Download } from 'lucide-react';
 import type { Essay } from '@/lib/services/essayService';
 import { addEssay, updateEssay } from '@/lib/services/essayService';
 import { uploadEssayFile } from '@/lib/services/storageService';
+import { createEssayNotification } from '@/lib/services/notificationService'; // Import notification service
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -125,9 +126,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
             let newFileUrl: string | undefined = undefined;
             const oldFileUrl = essayToEdit.fileUrl;
 
-            // If a new file is being uploaded, upload it first.
             if (fileToUpload) {
-                // We have the essayId, so we can use the new upload function
                 newFileUrl = await uploadEssayFile(fileToUpload, user.uid, essayToEdit.id!);
             }
             
@@ -138,7 +137,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 textType: values.textType,
                 targetExam: values.targetExam,
                 promptCommands: values.promptCommands,
-                fileUrl: newFileUrl || oldFileUrl, // Use new URL if available, otherwise keep the old one
+                fileUrl: newFileUrl || oldFileUrl,
             };
 
             await updateEssay(essayDataToUpdate, newFileUrl, oldFileUrl);
@@ -158,13 +157,17 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 textType: values.textType,
                 targetExam: values.targetExam,
                 promptCommands: values.promptCommands,
-                fileUrl: '', // Temporary empty URL
+                fileUrl: '', // Temp URL
                 status: 'a corrigir' as const,
             };
 
+            // 1. Create essay document to get an ID
             const essayId = await addEssay(user.uid, essayDocData);
+            
+            // 2. Upload file with the new essay ID
             const newFileUrl = await uploadEssayFile(fileToUpload, user.uid, essayId);
 
+            // 3. Update essay document with the final file URL
             const finalEssayData: Essay = {
                 id: essayId,
                 studentId: user.uid,
@@ -172,6 +175,9 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 fileUrl: newFileUrl,
             };
             await updateEssay(finalEssayData);
+
+            // 4. Create a notification for the teacher
+            await createEssayNotification(finalEssayData.title, essayId);
 
             toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
         }

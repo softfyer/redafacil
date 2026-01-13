@@ -1,12 +1,11 @@
 'use client';
 
-import { Bell, LogOut, User, Sun, Moon, CheckCheck } from 'lucide-react';
+import { Bell, LogOut, User, Sun, Moon, Trash2, Youtube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { mockNotifications } from '@/lib/placeholder-data';
-import type { Notification } from '@/lib/placeholder-data';
+import { getNotifications, deleteAllNotifications, type Notification } from '@/lib/services/notificationService';
 import { useState, useEffect } from 'react';
 import { Badge } from '../ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,12 +17,92 @@ import { useUser } from '@/contexts/UserContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+
+// A specific component for notifications, to keep the main header clean
+const TeacherNotifications = () => {
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const { toast } = useToast();
+    const notificationCount = notifications.length;
+
+    const fetchNotifications = async () => {
+        try {
+            const fetchedNotifications = await getNotifications();
+            setNotifications(fetchedNotifications);
+        } catch (error) {
+            console.error("Failed to fetch notifications:", error);
+            toast({ title: 'Erro ao buscar notificações', variant: 'destructive' });
+        }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const handleClearNotifications = async () => {
+        if (notificationCount === 0) return;
+        try {
+            await deleteAllNotifications();
+            setNotifications([]);
+            toast({ title: 'Notificações limpas!' });
+        } catch (error) {
+            console.error('Failed to clear notifications:', error);
+            toast({ title: 'Erro', description: 'Não foi possível limpar as notificações.', variant: 'destructive' });
+        }
+    };
+
+    return (
+        <Popover onOpenChange={(isOpen) => { if(isOpen) fetchNotifications() }}>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative rounded-full">
+                    <Bell className="h-5 w-5" />
+                    {notificationCount > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs">{notificationCount}</Badge>
+                    )}
+                    <span className="sr-only">Ver notificações</span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80" align="end">
+                <div className="grid gap-4">
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                    <h4 className="font-medium leading-none">Notificações</h4>
+                    {notificationCount > 0 && (
+                        <Button variant="link" size="sm" className="h-auto p-0 text-xs text-red-500" onClick={handleClearNotifications}>
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Limpar Notificações
+                        </Button>
+                    )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                    {notificationCount > 0
+                        ? `Você tem ${notificationCount} novas notificações.`
+                        : 'Nenhuma notificação nova.'}
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    {notifications.map(notification => (
+                    <div key={notification.id} className="grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0">
+                        <span className='flex h-2 w-2 translate-y-1.5 rounded-full bg-primary' />
+                        <div className="grid gap-1">
+                        <p className="text-sm font-medium leading-tight">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: ptBR }) : 'agora'}
+                        </p>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 export default function AppHeader({ title }: { title: string }) {
-  const { userData } = useUser();
+  const { userData, userRole } = useUser();
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
 
@@ -40,18 +119,6 @@ export default function AppHeader({ title }: { title: string }) {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(currentNotifications => 
-      currentNotifications.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  };
-  
-  const handleMarkAllAsRead = () => {
-    setNotifications(currentNotifications =>
-        currentNotifications.map(n => n.read ? n : { ...n, read: true })
-    );
-  };
-
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/login');
@@ -59,9 +126,7 @@ export default function AppHeader({ title }: { title: string }) {
 
   const getInitials = (name: string | undefined) => {
     if (!name) return '';
-    const nameParts = name.split(' ');
-    const initials = nameParts.map(part => part.charAt(0)).join('');
-    return initials.toUpperCase();
+    return name.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
   };
 
   return (
@@ -76,54 +141,17 @@ export default function AppHeader({ title }: { title: string }) {
           <h1 className="text-base font-semibold">{title}</h1>
         </div>
 
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="flex items-center gap-2 ml-auto">
           <ClientOnly>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs">{unreadCount}</Badge>
-                  )}
-                  <span className="sr-only">Toggle notifications</span>
+            {userRole === 'teacher' && <TeacherNotifications />}
+            {userRole === 'student' && (
+                <Button variant="outline" size="sm" asChild>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
+                        <Youtube className="mr-2 h-4 w-4" />
+                        Suporte
+                    </a>
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium leading-none">Notificações</h4>
-                      {unreadCount > 0 && (
-                          <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={handleMarkAllAsRead}>
-                              <CheckCheck className="mr-1 h-3 w-3" />
-                              Marcar todas como lidas
-                          </Button>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Você tem {unreadCount} notificações não lidas.
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    {notifications.map(notification => (
-                      <div
-                        key={notification.id}
-                        className="grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0"
-                        onClick={() => handleMarkAsRead(notification.id)}
-                      >
-                        <span className={`flex h-2 w-2 translate-y-1.5 rounded-full ${!notification.read ? 'bg-primary' : 'bg-muted'}`} />
-                        <div className="grid gap-1">
-                          <p className="text-sm font-medium">{notification.message}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(notification.createdAt, { addSuffix: true, locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            )}
           </ClientOnly>
 
           <ClientOnly>
