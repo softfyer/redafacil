@@ -167,11 +167,10 @@ export function EditCorrectionModal({
       // Build a clean update object
       const updatedData: Partial<Essay> = {
         textFeedback,
-        audioFeedbackUrl: audioFeedbackUrl,
-        correctedFileUrl: correctedFileUrl,
+        audioFeedbackUrl: audioFeedbackUrl || '', // Ensure no undefined
+        correctedFileUrl: correctedFileUrl || '', // Ensure no undefined
         teacherId: user.uid,
         teacherName: userData.name,
-        // Carry over the original correction date, don't create a new one on edit
         correctedAt: essay.correctedAt, 
         status: 'corrected',
       };
