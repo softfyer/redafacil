@@ -34,7 +34,7 @@ type EditCorrectionModalProps = {
   onCorrectionUpdated: () => void;
 };
 
-const isImageUrl = (url: string) => {
+const isImageUrl = (url: string | undefined) => {
     if (!url) return false;
     try {
         const path = new URL(url).pathname;
@@ -163,12 +163,17 @@ export function EditCorrectionModal({
       }
 
       setLoadingMessage('Finalizando atualização...');
+      
+      // Build a clean update object
       const updatedData: Partial<Essay> = {
         textFeedback,
         audioFeedbackUrl: audioFeedbackUrl,
         correctedFileUrl: correctedFileUrl,
         teacherId: user.uid,
         teacherName: userData.name,
+        // Carry over the original correction date, don't create a new one on edit
+        correctedAt: essay.correctedAt, 
+        status: 'corrected',
       };
 
       await submitCorrection(essay.id, updatedData);
@@ -283,7 +288,7 @@ export function EditCorrectionModal({
                  </Button>
                </div>
             )}
-            {isImageUrl(essay?.fileUrl || '') && (
+            {isImageUrl(essay?.fileUrl) && (
                 <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} className="w-full mb-2">
                   <Edit className="mr-2 h-4 w-4" />
                   Anotar na Imagem Original
@@ -327,7 +332,7 @@ export function EditCorrectionModal({
       </DialogContent>
     </Dialog>
 
-    {essay?.id && essay?.fileUrl && isImageUrl(essay.fileUrl) && (
+    {essay?.id && isImageUrl(essay.fileUrl) && (
         <AnnotationModal
             isOpen={isAnnotationModalOpen}
             onClose={() => setIsAnnotationModalOpen(false)}
