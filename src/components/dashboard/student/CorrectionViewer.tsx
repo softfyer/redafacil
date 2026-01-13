@@ -3,7 +3,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Essay } from '@/lib/services/essayService';
-import { Download, Eye } from 'lucide-react'; // Importa o ícone Eye
+import { Download, Eye } from 'lucide-react';
+import Image from 'next/image';
 
 interface CorrectionViewerProps {
   isOpen: boolean;
@@ -11,12 +12,24 @@ interface CorrectionViewerProps {
   essay: Essay | null;
 }
 
+// Helper to check if a URL points to an image
+const isImageUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    try {
+        const path = new URL(url).pathname;
+        return /\.(jpeg|jpg|png)$/i.test(path);
+    } catch (e) {
+        return false;
+    }
+};
+
 export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionViewerProps) {
   if (!essay || essay.status !== 'corrected') {
     return null;
   }
 
   const formattedFeedback = essay.textFeedback?.replace(/\n/g, '<br />') || 'Nenhum feedback fornecido.';
+  const correctedFileIsImage = isImageUrl(essay.correctedFileUrl);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -24,11 +37,11 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
         <DialogHeader>
           <DialogTitle>Correção da Redação: {essay.title}</DialogTitle>
           <DialogDescription>
-            Veja abaixo os comentários do professor e os links para seus arquivos.
+            Veja abaixo os comentários do professor e os arquivos.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 space-y-4">
+        <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
             <div className="space-y-2">
                 <h4 className="font-semibold">Detalhes da Redação:</h4>
                 <p className="text-sm text-muted-foreground"><strong>Comando da redação:</strong> {essay.promptCommands}</p>
@@ -37,11 +50,13 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                 <p className="text-sm text-muted-foreground"><strong>Tipo de texto:</strong> {essay.textType}</p>
             </div>
 
-            <h4 className="font-semibold">Feedback do Professor:</h4>
-            <div 
-                className="prose prose-sm max-w-none text-muted-foreground p-3 bg-stone-100 rounded-md"
-                dangerouslySetInnerHTML={{ __html: formattedFeedback }}
-            />
+            <div className="space-y-2">
+                <h4 className="font-semibold">Feedback do Professor:</h4>
+                <div 
+                    className="prose prose-sm max-w-none text-muted-foreground p-3 bg-stone-100 dark:bg-stone-800 rounded-md"
+                    dangerouslySetInnerHTML={{ __html: formattedFeedback }}
+                />
+            </div>
 
             {essay.audioFeedbackUrl && (
                 <div className="space-y-2">
@@ -51,10 +66,24 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                     </audio>
                 </div>
             )}
+            
+            {correctedFileIsImage && essay.correctedFileUrl && (
+                <div className="space-y-2">
+                    <h4 className="font-semibold">Redação Corrigida (Com Anotações):</h4>
+                    <div className="relative w-full border rounded-md overflow-hidden">
+                        <Image
+                            src={essay.correctedFileUrl}
+                            alt="Redação corrigida com anotações"
+                            width={800}
+                            height={1120} // Approximate A4 aspect ratio
+                            className="w-full h-auto"
+                        />
+                    </div>
+                </div>
+            )}
         </div>
 
-        {/* ADIÇÃO: Botões para ver arquivo original e baixar o corrigido */}
-        <DialogFooter className="flex-col sm:flex-row sm:justify-start gap-2">
+        <DialogFooter className="flex-col sm:flex-row sm:justify-start gap-2 pt-4">
             {essay.fileUrl && (
                 <a href={essay.fileUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                     <Button type="button" variant="outline" className="w-full">
@@ -64,7 +93,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                 </a>
             )}
             {essay.correctedFileUrl ? (
-                 <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                 <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" download className="w-full sm:w-auto">
                     <Button type="button" className="w-full">
                         <Download className="mr-2 h-4 w-4" />
                         Baixar Arquivo Corrigido
