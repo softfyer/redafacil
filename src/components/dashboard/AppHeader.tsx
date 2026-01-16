@@ -134,7 +134,7 @@ export default function AppHeader({ title }: { title: string }) {
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 mr-auto">
           <Feather className="w-7 h-7 text-primary" />
-          <h1 className="text-lg font-bold tracking-tighter hidden sm:block">Redação Online</h1>
+          <h1 className="text-lg font-bold tracking-tighter hidden sm:block">RedaFácil</h1>
         </div>
         
         <div className="flex-1 text-center">

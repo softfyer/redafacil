@@ -6,7 +6,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { Loader2 } from 'lucide-react';
+import { Feather, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Componente de loader em tela cheia
 const AuthLoader = () => (
@@ -30,42 +31,45 @@ export default function LoginPage() {
           const teacherDocSnap = await getDoc(teacherDocRef);
           if (teacherDocSnap.exists()) {
             router.replace('/teacher/dashboard');
-            return;
-          }
-
-          // Verificar se é estudante
-          const studentDocRef = doc(db, 'students', user.uid);
-          const studentDocSnap = await getDoc(studentDocRef);
-          if (studentDocSnap.exists()) {
+          } else {
+            // Senão, é estudante
             router.replace('/student/dashboard');
-            return;
           }
-
-          // Caso de usuário autenticado sem papel definido
-          setIsVerifying(false);
-
         } catch (error) {
-           // Em caso de erro, mostrar a página de login como fallback
-           console.error("Erro ao verificar autenticação:", error);
-           setIsVerifying(false);
-        }
-      } else {
-        // Usuário não está logado, mostrar formulário de login
-        setIsVerifying(false);
-      }
-    });
-
-    // Limpar a inscrição no desmontar
-    return () => unsubscribe();
-  }, [router]);
-
-  if (isVerifying) {
-    return <AuthLoader />;
-  }
-
+                   // Em caso de erro, mostrar a página de login como fallback
+                   console.error("Erro ao verificar autenticação:", error);
+                   setIsVerifying(false);
+                }
+              } else {
+                // Usuário não está logado, mostrar formulário de login
+                setIsVerifying(false);
+              }
+            });
+        
+            // Limpar a inscrição no desmontar
+            return () => unsubscribe();
+          }, [router]);
+        
+          if (isVerifying) {
+            return <AuthLoader />;
+          }
+        
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <LoginForm />
+    <div className="flex items-center justify-center min-h-screen p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <Card className="w-full max-w-md shadow-md">
+        <CardHeader className="text-center">
+            <div className="flex justify-center items-center gap-2 mb-4">
+                <Feather className="w-8 h-8 text-primary" />
+                <CardTitle className="text-2xl font-bold">RedaFácil</CardTitle>
+            </div>
+          <CardDescription>
+            Insira suas credenciais para entrar no sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LoginForm />
+        </CardContent>
+      </Card>
     </div>
   );
 }

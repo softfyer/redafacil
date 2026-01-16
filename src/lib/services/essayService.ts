@@ -54,7 +54,7 @@ export const addEssay = async (studentId: string, essayData: Omit<Essay, 'id' | 
       studentId: studentId,
       submittedAt: serverTimestamp(),
     });
-    console.log('Essay added with ID: ', docRef.id);
+    
     return docRef.id;
   } catch (error) {
     console.error('Error adding essay: ', error);
@@ -90,9 +90,9 @@ export const updateEssay = async (essay: Essay, newFileUrl?: string, oldFileUrl?
 
   try {
     await updateDoc(essayDocRef, dataToUpdate);
-    console.log(`Essay ${essay.id} updated successfully.`);
+    
   } catch (error) {
-    console.error('Error updating essay: ', error);
+    
     throw new Error('Failed to update essay.');
   }
 };
@@ -104,7 +104,7 @@ export const updateEssay = async (essay: Essay, newFileUrl?: string, oldFileUrl?
  * @returns A promise that resolves to an array of essays.
  */
 export const getEssaysByStudent = async (studentId: string): Promise<Essay[]> => {
-  console.log("Fetching essays for student ID:", studentId);
+  
   try {
     const q = query(
       collection(db, 'essays'),
@@ -116,7 +116,7 @@ export const getEssaysByStudent = async (studentId: string): Promise<Essay[]> =>
       id: doc.id,
       ...doc.data(),
     })) as Essay[];
-    console.log("Fetched essays count:", essays.length);
+    
     return essays;
   } catch (error) {
     console.error('Error fetching student essays: ', error);

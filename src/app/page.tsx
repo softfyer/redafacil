@@ -48,7 +48,7 @@ export default function Home() {
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Feather className="w-8 h-8 text-primary" />
-          <h1 className="text-xl font-bold tracking-tighter">Redação Online</h1>
+          <h1 className="text-xl font-bold tracking-tighter">RedaFácil</h1>
         </div>
         <nav className="flex items-center gap-4">
           <Button variant="ghost" asChild>
