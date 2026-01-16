@@ -51,9 +51,7 @@ export default function AppSidebar({ userRole }: AppSidebarProps) {
 
     const getInitials = (name: string | undefined) => {
         if (!name) return '';
-        const nameParts = name.split(' ');
-        const initials = nameParts.map(part => part.charAt(0)).join('');
-        return initials.toUpperCase();
+        return name.charAt(0).toUpperCase();
     };
 
     return (

@@ -125,7 +125,7 @@ export default function AppHeader({ title }: { title: string }) {
 
   const getInitials = (name: string | undefined) => {
     if (!name) return '';
-    return name.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
+    return name.charAt(0).toUpperCase();
   };
 
   const settingsPath = userRole === 'student' ? '/student/settings' : '/teacher/settings';
