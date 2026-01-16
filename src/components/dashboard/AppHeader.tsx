@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, User, Sun, Moon, Trash2, Youtube } from 'lucide-react';
+import { Bell, LogOut, User, Sun, Moon, Trash2, Youtube, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -11,13 +11,13 @@ import { Badge } from '../ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Feather } from 'lucide-react';
-import { ProfileModal } from './ProfileModal';
 import { ClientOnly } from '../ui/client-only';
 import { useUser } from '@/contexts/UserContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 // A specific component for notifications, to keep the main header clean
 const TeacherNotifications = () => {
@@ -103,7 +103,6 @@ export default function AppHeader({ title }: { title: string }) {
   const { userData, userRole } = useUser();
   const router = useRouter();
   
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
@@ -128,6 +127,8 @@ export default function AppHeader({ title }: { title: string }) {
     if (!name) return '';
     return name.split(' ').map(part => part.charAt(0)).join('').toUpperCase();
   };
+
+  const settingsPath = userRole === 'student' ? '/student/settings' : '/teacher/settings';
 
   return (
     <>
@@ -173,9 +174,11 @@ export default function AppHeader({ title }: { title: string }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setIsProfileModalOpen(true)}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Perfil</span>
+                <DropdownMenuItem asChild>
+                  <Link href={settingsPath}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={toggleTheme}>
                   {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
@@ -191,7 +194,6 @@ export default function AppHeader({ title }: { title: string }) {
           </ClientOnly>
         </div>
       </header>
-      <ProfileModal isOpen={isProfileModalOpen} onOpenChange={setIsProfileModalOpen} />
     </>
   );
 }
