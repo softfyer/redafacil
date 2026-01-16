@@ -144,9 +144,10 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
 
   const textTypeMap: { [key: string]: string } = {
     'dissertativo-argumentativo': 'Dissertativo-Argumentativo',
+    'descritivo': 'Descritivo',
+    'expositivo': 'Expositivo',
+    'narrativo': 'Narrativo',
     'carta': 'Carta',
-    'artigo-de-opiniao': 'Artigo de Opinião',
-    'outro': 'Outro'
   }
 
   return (
@@ -224,7 +225,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
                 </Label>
                 {annotatedImageBlob ? (
                     <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
-                        Uma imagem com anotações já foi salva e será enviada. Para enviar um arquivo diferente, primeiro remova as anotações.
+                        Uma imagem com anotações já foi salva e será enviada.
                     </div>
                 ) : (
                     <>

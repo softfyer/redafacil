@@ -24,7 +24,7 @@ const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "appl
 const baseSchema = z.object({
   title: z.string().min(5, { message: 'O título deve ter no mínimo 5 caracteres.' }),
   topic: z.string().min(5, { message: 'O tema deve ter no mínimo 5 caracteres.' }),
-  textType: z.enum(['dissertativo-argumentativo', 'carta', 'artigo-de-opiniao', 'outro'], { required_error: 'Selecione o tipo textual.' }),
+  textType: z.enum(['dissertativo-argumentativo', 'descritivo', 'expositivo', 'narrativo', 'carta'], { required_error: 'Selecione o tipo textual.' }),
   targetExam: z.string().min(2, { message: 'O campo deve ter no mínimo 2 caracteres.' }),
   promptCommands: z.string().min(10, { message: 'Os comandos devem ter no mínimo 10 caracteres.' }),
 });
@@ -97,7 +97,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
       form.reset({
         title: essayToEdit.title,
         topic: essayToEdit.topic,
-        textType: essayToEdit.textType,
+        textType: essayToEdit.textType as any,
         targetExam: essayToEdit.targetExam,
         promptCommands: essayToEdit.promptCommands,
         file: undefined,
@@ -247,7 +247,7 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Tipo Textual</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
@@ -255,9 +255,10 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                         </FormControl>
                         <SelectContent>
                             <SelectItem value="dissertativo-argumentativo">Dissertativo-argumentativo</SelectItem>
-                            <SelectItem value="artigo-de-opiniao">Artigo de Opinião</SelectItem>
+                            <SelectItem value="descritivo">Descritivo</SelectItem>
+                            <SelectItem value="expositivo">Expositivo</SelectItem>
+                            <SelectItem value="narrativo">Narrativo</SelectItem>
                             <SelectItem value="carta">Carta</SelectItem>
-                            <SelectItem value="outro">Outro</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
