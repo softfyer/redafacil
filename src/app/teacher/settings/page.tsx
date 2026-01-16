@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Save, KeyRound, Loader2, UserCog } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { updatePassword, signOut } from 'firebase/auth';
@@ -52,8 +52,8 @@ export default function SettingsPage() {
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: '',
+    values: {
+      name: userData?.name || '',
     },
   });
 
@@ -64,14 +64,6 @@ export default function SettingsPage() {
           confirmPassword: '',
       }
   });
-
-  useEffect(() => {
-    if (userData) {
-      profileForm.reset({
-        name: userData.name || '',
-      });
-    }
-  }, [userData, profileForm]);
 
   async function onProfileSubmit(values: z.infer<typeof profileSchema>) {
     if (!user) {
