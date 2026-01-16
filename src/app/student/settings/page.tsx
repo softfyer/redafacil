@@ -45,7 +45,7 @@ const passwordSchema = z.object({
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const { user, userData, userRole } = useUser();
+  const { user, userData, userRole, refreshUserData } = useUser();
   const router = useRouter();
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
@@ -75,6 +75,9 @@ export default function SettingsPage() {
     try {
         const userDocRef = doc(db, `${userRole}s`, user.uid);
         await updateDoc(userDocRef, { name: values.name });
+        
+        refreshUserData(); // Refresh the user data in the context
+
         toast({
             title: 'Perfil atualizado!',
             description: 'Seu nome foi salvo com sucesso.',
