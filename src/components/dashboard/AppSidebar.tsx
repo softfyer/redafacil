@@ -42,6 +42,7 @@ export default function AppSidebar({ userRole }: AppSidebarProps) {
     const { userData, isLoading } = useUser();
 
     const navItems = userRole === 'student' ? studentNavItems : teacherNavItems;
+    const dashboardPath = userRole === 'student' ? '/student/dashboard' : '/teacher/dashboard';
 
     const handleLogout = async () => {
         await signOut(auth);
@@ -58,10 +59,10 @@ export default function AppSidebar({ userRole }: AppSidebarProps) {
     return (
         <Sidebar>
             <SidebarHeader>
-                <div className="flex items-center gap-2">
+                <Link href={dashboardPath} className="flex items-center gap-2">
                     <Feather className="w-8 h-8 text-primary" />
                     <h1 className="text-xl font-bold tracking-tighter text-foreground">Redação Online</h1>
-                </div>
+                </Link>
             </SidebarHeader>
             <SidebarContent>
                 <SidebarMenu>
