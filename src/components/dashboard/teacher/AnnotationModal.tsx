@@ -18,9 +18,10 @@ interface AnnotationModalProps {
   imageUrl: string;
   essayId: string;
   onSave: (blob: Blob) => void;
+  originalMimeType: 'image/jpeg' | 'image/png';
 }
 
-export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave }: AnnotationModalProps) {
+export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, originalMimeType }: AnnotationModalProps) {
 
   // We need a way to pass the save action from the canvas up to the modal's parent.
   // We'll pass the `onSave` prop directly to the canvas.
@@ -37,7 +38,7 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave }: 
         </DialogHeader>
         
         <div className="flex-1 min-h-0">
-          <AnnotationCanvas imageUrl={imageUrl} essayId={essayId} onSave={onSave} />
+          <AnnotationCanvas imageUrl={imageUrl} essayId={essayId} onSave={onSave} originalMimeType={originalMimeType} />
         </div>
 
         <DialogFooter>

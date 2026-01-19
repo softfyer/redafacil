@@ -45,6 +45,20 @@ const isImageUrl = (url: string | undefined) => {
     }
 };
 
+const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png' => {
+    if (!url) return 'image/png';
+    try {
+        const path = new URL(url).pathname.toLowerCase();
+        if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+            return 'image/jpeg';
+        }
+        return 'image/png';
+    } catch (e) {
+        return 'image/png';
+    }
+};
+
+
 export function EditCorrectionModal({
   essay,
   isOpen,
@@ -62,6 +76,7 @@ export function EditCorrectionModal({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, userData } = useUser();
+  const originalMimeType = getMimeTypeFromUrl(essay?.fileUrl);
 
   useEffect(() => {
     if (essay && isOpen) {
@@ -338,6 +353,7 @@ export function EditCorrectionModal({
             imageUrl={essay.fileUrl}
             essayId={essay.id}
             onSave={handleAnnotationSave}
+            originalMimeType={originalMimeType}
         />
     )}
     </>

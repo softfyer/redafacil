@@ -17,9 +17,10 @@ interface AnnotationCanvasProps {
   imageUrl: string;
   essayId: string;
   onSave: (blob: Blob) => void;
+  originalMimeType: 'image/jpeg' | 'image/png';
 }
 
-export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvasProps) {
+export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushColor, setBrushColor] = useState('#FF0000'); // Default to red
@@ -193,11 +194,23 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave }: AnnotationCanvas
   const handleSave = () => {
     // Redraw one last time to ensure everything is on the canvas
     redrawCanvas();
-    canvasRef.current?.toBlob((blob) => {
-      if (blob) {
-        onSave(blob);
-      }
-    }, 'image/png');
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (originalMimeType === 'image/jpeg') {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                onSave(blob);
+            }
+        }, 'image/jpeg', 0.9); // Use JPEG with 90% quality
+    } else {
+        // Default to PNG for other types or if original is PNG
+        canvas.toBlob((blob) => {
+            if (blob) {
+                onSave(blob);
+            }
+        }, 'image/png');
+    }
   };
 
   return (

@@ -19,12 +19,6 @@ import { submitCorrection } from '@/lib/services/essayService';
 import { AnnotationModal } from './AnnotationModal'; // Importar o novo componente
 import { useUser } from '@/contexts/UserContext';
 
-type CorrectionInterfaceProps = {
-  essay: Essay & { studentName: string };
-  onCorrectionSubmit: () => void; // No longer needs to pass data up
-  onBack: () => void;
-};
-
 // Função para verificar se a URL é de uma imagem
 const isImageUrl = (url: string) => {
     // Remove query parameters from URL (like Firebase tokens) before checking extension
@@ -37,6 +31,28 @@ const isImageUrl = (url: string) => {
     }
 };
 
+const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png' => {
+    if (!url) return 'image/png';
+    try {
+        const path = new URL(url).pathname.toLowerCase();
+        if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+            return 'image/jpeg';
+        }
+        return 'image/png';
+    } catch (e) {
+        return 'image/png';
+    }
+};
+
+
+type CorrectionInterfaceProps = {
+  essay: Essay & { studentName: string };
+  onCorrectionSubmit: () => void; // No longer needs to pass data up
+  onBack: () => void;
+};
+
+
+
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
   const [textFeedback, setTextFeedback] = useState('');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -48,6 +64,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, userData } = useUser();
+  const originalMimeType = getMimeTypeFromUrl(essay.fileUrl);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -261,6 +278,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             imageUrl={essay.fileUrl}
             essayId={essay.id}
             onSave={handleAnnotationSave}
+            originalMimeType={originalMimeType}
         />
       )}
     </>

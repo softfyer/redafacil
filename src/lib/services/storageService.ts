@@ -112,14 +112,16 @@ export const uploadAnnotatedImage = async (imageBlob: Blob, studentId: string, e
         throw new Error('Student ID and Essay ID must be provided.');
     }
 
-    const fileName = `${essayId}-annotated.png`;
+    // Determine file extension from blob's MIME type
+    const extension = imageBlob.type.split('/')[1] || 'png';
+    const fileName = `${essayId}-annotated.${extension}`;
     const storagePath = `essays/${studentId}/${essayId}/${fileName}`;
 
     try {
         const storageRef = ref(storage, storagePath);
         console.log(`Uploading annotated image to: ${storagePath}`);
 
-        const snapshot = await uploadBytes(storageRef, imageBlob, { contentType: 'image/png' });
+        const snapshot = await uploadBytes(storageRef, imageBlob, { contentType: imageBlob.type });
         const downloadURL = await getDownloadURL(snapshot.ref);
 
         console.log('Annotated image uploaded successfully! URL:', downloadURL);
