@@ -33,15 +33,15 @@ const isImageUrl = (url: string) => {
 };
 
 const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png' => {
-    if (!url) return 'image/png';
+    if (!url) return 'image/jpeg';
     try {
         const path = new URL(url).pathname.toLowerCase();
         if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
             return 'image/jpeg';
         }
-        return 'image/png';
+        return 'image/jpeg';
     } catch (e) {
-        return 'image/png';
+        return 'image/jpeg';
     }
 };
 
@@ -223,90 +223,20 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
                   Baixar Redação Original
                 </a>
               </Button>
-              {isImageUrl(essay.fileUrl) && (
-                <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Anotar na Imagem
-                </Button>
-              )}
             </div>
 
             <Separator />
-            
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="gradeContent">Nota de Conteúdo (0-50)</Label>
-                    <Input
-                        id="gradeContent"
-                        type="number"
-                        placeholder="0-50"
-                        value={gradeContent ?? ''}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setGradeContent(undefined);
-                                return;
-                            }
-                            let num = parseInt(val, 10);
-                            if (!isNaN(num)) {
-                                if (num > 50) num = 50;
-                                if (num < 0) num = 0;
-                                setGradeContent(num);
-                            }
-                        }}
-                        disabled={isLoading}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="gradeStructure">Nota de Estrutura (0-50)</Label>
-                     <Input
-                        id="gradeStructure"
-                        type="number"
-                        placeholder="0-50"
-                        value={gradeStructure ?? ''}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setGradeStructure(undefined);
-                                return;
-                            }
-                            let num = parseInt(val, 10);
-                            if (!isNaN(num)) {
-                                if (num > 50) num = 50;
-                                if (num < 0) num = 0;
-                                setGradeStructure(num);
-                            }
-                        }}
-                        disabled={isLoading}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label>Nota Final</Label>
-                    <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
-                </div>
-            </div>
 
             <div className="space-y-2">
-              <Label>Feedback por Áudio (Opcional)</Label>
-              <AudioRecorder onRecordingComplete={setAudioBlob} disabled={isLoading}/>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="text-feedback">Feedback por Texto (Obrigatório)</Label>
-              <Textarea
-                id="text-feedback"
-                placeholder="Digite sua análise, pontos fortes, pontos a melhorar e sugestões para o aluno..."
-                value={textFeedback}
-                onChange={(e) => setTextFeedback(e.target.value)}
-                rows={10}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="corrected-file">
-                    Anexar Redação Corrigida (Opcional)
+                <Label htmlFor="corrected-file" className="font-bold text-base">
+                    1. Redação Corrigida (Anexar ou Anotar)
                 </Label>
+                {isImageUrl(essay.fileUrl) && (
+                    <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} disabled={isLoading} className="w-full">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Anotar na Imagem da Redação
+                    </Button>
+                )}
                 {annotatedImageBlob ? (
                     <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
                         Uma imagem com anotações já foi salva e será enviada.
@@ -321,10 +251,86 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
                             disabled={isLoading}
                             accept=".pdf,.doc,.docx,.png,.jpg"
                         />
-                        <p className="text-xs text-muted-foreground">Anexe o arquivo com suas marcações (ex: PDF, Word, imagem).</p>
+                        <p className="text-xs text-muted-foreground">
+                            {isImageUrl(essay.fileUrl) ? "Ou anexe um arquivo com suas marcações (PDF, Word, etc.)." : "Anexe o arquivo com suas marcações (PDF, Word, etc.)."}
+                        </p>
                     </>
                 )}
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="text-feedback" className="font-bold text-base">2. Feedback por Texto (Obrigatório)</Label>
+              <Textarea
+                id="text-feedback"
+                placeholder="Digite sua análise, pontos fortes, pontos a melhorar e sugestões para o aluno..."
+                value={textFeedback}
+                onChange={(e) => setTextFeedback(e.target.value)}
+                rows={10}
+                disabled={isLoading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="font-bold text-base">3. Feedback por Áudio (Opcional)</Label>
+              <AudioRecorder onRecordingComplete={setAudioBlob} disabled={isLoading}/>
+            </div>
+            
+            <div className="space-y-2">
+                <Label className="font-bold text-base">4. Notas</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg">
+                    <div className="space-y-2">
+                        <Label htmlFor="gradeContent">Nota de Conteúdo</Label>
+                        <Input
+                            id="gradeContent"
+                            type="number"
+                            placeholder="0-50"
+                            value={gradeContent ?? ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                    setGradeContent(undefined);
+                                    return;
+                                }
+                                let num = parseInt(val, 10);
+                                if (!isNaN(num)) {
+                                    if (num > 50) num = 50;
+                                    if (num < 0) num = 0;
+                                    setGradeContent(num);
+                                }
+                            }}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="gradeStructure">Nota de Estrutura</Label>
+                        <Input
+                            id="gradeStructure"
+                            type="number"
+                            placeholder="0-50"
+                            value={gradeStructure ?? ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '') {
+                                    setGradeStructure(undefined);
+                                    return;
+                                }
+                                let num = parseInt(val, 10);
+                                if (!isNaN(num)) {
+                                    if (num > 50) num = 50;
+                                    if (num < 0) num = 0;
+                                    setGradeStructure(num);
+                                }
+                            }}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Nota Final</Label>
+                        <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
+                    </div>
+                </div>
+            </div>
+
           </CardContent>
         </Card>
         

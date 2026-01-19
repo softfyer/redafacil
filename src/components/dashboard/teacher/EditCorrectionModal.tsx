@@ -47,15 +47,15 @@ const isImageUrl = (url: string | undefined) => {
 };
 
 const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png' => {
-    if (!url) return 'image/png';
+    if (!url) return 'image/jpeg';
     try {
         const path = new URL(url).pathname.toLowerCase();
         if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
             return 'image/jpeg';
         }
-        return 'image/png';
+        return 'image/jpeg';
     } catch (e) {
-        return 'image/png';
+        return 'image/jpeg';
     }
 };
 
@@ -276,126 +276,131 @@ export function EditCorrectionModal({
           <DialogTitle>Editar Correção: {essay?.title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                  <Label htmlFor="gradeContent-edit">Nota de Conteúdo (0-50)</Label>
-                  <Input
-                      id="gradeContent-edit"
-                      type="number"
-                      placeholder="0-50"
-                      value={gradeContent ?? ''}
-                      onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setGradeContent(undefined);
-                                return;
-                            }
-                            let num = parseInt(val, 10);
-                            if (!isNaN(num)) {
-                                if (num > 50) num = 50;
-                                if (num < 0) num = 0;
-                                setGradeContent(num);
-                            }
-                        }}
-                      disabled={isLoading}
-                  />
-              </div>
-              <div className="space-y-2">
-                  <Label htmlFor="gradeStructure-edit">Nota de Estrutura (0-50)</Label>
-                   <Input
-                      id="gradeStructure-edit"
-                      type="number"
-                      placeholder="0-50"
-                      value={gradeStructure ?? ''}
-                      onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setGradeStructure(undefined);
-                                return;
-                            }
-                            let num = parseInt(val, 10);
-                            if (!isNaN(num)) {
-                                if (num > 50) num = 50;
-                                if (num < 0) num = 0;
-                                setGradeStructure(num);
-                            }
-                        }}
-                      disabled={isLoading}
-                  />
-              </div>
-              <div className="space-y-2">
-                  <Label>Nota Final</Label>
-                  <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
-              </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-text-feedback">Feedback por Texto</Label>
-            <Textarea
-              id="edit-text-feedback"
-              value={textFeedback}
-              onChange={(e) => setTextFeedback(e.target.value)}
-              rows={8}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Feedback por Áudio</Label>
-            {essay?.audioFeedbackUrl && !audioBlob && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                <audio controls src={essay.audioFeedbackUrl} className="flex-grow"/>
-                <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('audio')} disabled={isLoading}>
-                    <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            <AudioRecorder
-              onRecordingComplete={setAudioBlob}
-              disabled={isLoading}
-            />
-             <p className="text-xs text-muted-foreground">
-                Grave um novo áudio para substituir o existente ou remova o atual.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-corrected-file">
-              Redação Corrigida
-            </Label>
-            {essay?.correctedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
-               <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
-                 <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate">
-                    Ver arquivo corrigido atual
-                 </a>
-                 <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('correctedFile')} disabled={isLoading}>
-                    <X className="h-4 w-4" />
-                 </Button>
-               </div>
-            )}
-            {isImageUrl(essay?.fileUrl) && (
-                <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} className="w-full mb-2">
-                  <Edit className="mr-2 h-4 w-4" />
-                  Anotar na Imagem Original
-                </Button>
-            )}
-             {annotatedImageBlob && (
-                <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
-                    Uma nova imagem com anotações está pronta para ser enviada e substituirá o arquivo corrigido atual.
+            <div className="space-y-2">
+                <Label htmlFor="edit-corrected-file" className="font-bold text-base">
+                    1. Redação Corrigida (Anexar ou Anotar)
+                </Label>
+                {essay?.correctedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
+                <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                    <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate">
+                        Ver arquivo corrigido atual
+                    </a>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('correctedFile')} disabled={isLoading}>
+                        <X className="h-4 w-4" />
+                    </Button>
                 </div>
-            )}
-            <Input
-              id="edit-corrected-file"
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              disabled={isLoading || !!annotatedImageBlob}
-              accept=".pdf,.doc,.docx,.png,.jpg"
-            />
-             <p className="text-xs text-muted-foreground">
-                Envie um novo arquivo para substituir o existente. Se anotar na imagem, este campo será desabilitado.
-            </p>
-          </div>
+                )}
+                {isImageUrl(essay?.fileUrl) && (
+                    <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} className="w-full" disabled={isLoading}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Anotar novamente na Imagem Original
+                    </Button>
+                )}
+                {annotatedImageBlob && (
+                    <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
+                        Uma nova imagem com anotações está pronta para ser enviada e substituirá o arquivo corrigido atual.
+                    </div>
+                )}
+                <Input
+                id="edit-corrected-file"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                disabled={isLoading || !!annotatedImageBlob}
+                accept=".pdf,.doc,.docx,.png,.jpg"
+                />
+                <p className="text-xs text-muted-foreground">
+                    Envie um novo arquivo para substituir o existente. Se anotar na imagem, este campo será desabilitado.
+                </p>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="edit-text-feedback" className="font-bold text-base">2. Feedback por Texto</Label>
+                <Textarea
+                id="edit-text-feedback"
+                value={textFeedback}
+                onChange={(e) => setTextFeedback(e.target.value)}
+                rows={8}
+                disabled={isLoading}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label className="font-bold text-base">3. Feedback por Áudio</Label>
+                {essay?.audioFeedbackUrl && !audioBlob && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                    <audio controls src={essay.audioFeedbackUrl} className="flex-grow"/>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('audio')} disabled={isLoading}>
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+                )}
+                <AudioRecorder
+                onRecordingComplete={setAudioBlob}
+                disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                    Grave um novo áudio para substituir o existente ou remova o atual.
+                </p>
+            </div>
+
+            <div className="space-y-2">
+                <Label className="font-bold text-base">4. Notas</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg">
+                    <div className="space-y-2">
+                        <Label htmlFor="gradeContent-edit">Nota de Conteúdo</Label>
+                        <Input
+                            id="gradeContent-edit"
+                            type="number"
+                            placeholder="0-50"
+                            value={gradeContent ?? ''}
+                            onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                        setGradeContent(undefined);
+                                        return;
+                                    }
+                                    let num = parseInt(val, 10);
+                                    if (!isNaN(num)) {
+                                        if (num > 50) num = 50;
+                                        if (num < 0) num = 0;
+                                        setGradeContent(num);
+                                    }
+                                }}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="gradeStructure-edit">Nota de Estrutura</Label>
+                        <Input
+                            id="gradeStructure-edit"
+                            type="number"
+                            placeholder="0-50"
+                            value={gradeStructure ?? ''}
+                            onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                        setGradeStructure(undefined);
+                                        return;
+                                    }
+                                    let num = parseInt(val, 10);
+                                    if (!isNaN(num)) {
+                                        if (num > 50) num = 50;
+                                        if (num < 0) num = 0;
+                                        setGradeStructure(num);
+                                    }
+                                }}
+                            disabled={isLoading}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Nota Final</Label>
+                        <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
+                    </div>
+                </div>
+            </div>
+
         </div>
         <DialogFooter>
           <DialogClose asChild>
