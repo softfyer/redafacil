@@ -52,9 +52,6 @@ type CorrectionInterfaceProps = {
   onBack: () => void;
 };
 
-const gradeOptions = Array.from({ length: 51 }, (_, i) => i);
-
-
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
   const [textFeedback, setTextFeedback] = useState('');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -238,30 +235,50 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                    <Label>Nota de Conteúdo (0-50)</Label>
-                    <Select onValueChange={(val) => setGradeContent(Number(val))} disabled={isLoading}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {gradeOptions.map((grade) => (
-                                <SelectItem key={`content-${grade}`} value={String(grade)}>{grade}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Label htmlFor="gradeContent">Nota de Conteúdo (0-50)</Label>
+                    <Input
+                        id="gradeContent"
+                        type="number"
+                        placeholder="0-50"
+                        value={gradeContent ?? ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                                setGradeContent(undefined);
+                                return;
+                            }
+                            let num = parseInt(val, 10);
+                            if (!isNaN(num)) {
+                                if (num > 50) num = 50;
+                                if (num < 0) num = 0;
+                                setGradeContent(num);
+                            }
+                        }}
+                        disabled={isLoading}
+                    />
                 </div>
                 <div className="space-y-2">
-                    <Label>Nota de Estrutura (0-50)</Label>
-                     <Select onValueChange={(val) => setGradeStructure(Number(val))} disabled={isLoading}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                             {gradeOptions.map((grade) => (
-                                <SelectItem key={`structure-${grade}`} value={String(grade)}>{grade}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Label htmlFor="gradeStructure">Nota de Estrutura (0-50)</Label>
+                     <Input
+                        id="gradeStructure"
+                        type="number"
+                        placeholder="0-50"
+                        value={gradeStructure ?? ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                                setGradeStructure(undefined);
+                                return;
+                            }
+                            let num = parseInt(val, 10);
+                            if (!isNaN(num)) {
+                                if (num > 50) num = 50;
+                                if (num < 0) num = 0;
+                                setGradeStructure(num);
+                            }
+                        }}
+                        disabled={isLoading}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label>Nota Final</Label>

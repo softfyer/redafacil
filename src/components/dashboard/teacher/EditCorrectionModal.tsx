@@ -59,9 +59,6 @@ const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png'
     }
 };
 
-const gradeOptions = Array.from({ length: 51 }, (_, i) => i);
-
-
 export function EditCorrectionModal({
   essay,
   isOpen,
@@ -281,38 +278,50 @@ export function EditCorrectionModal({
         <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                  <Label>Nota de Conteúdo (0-50)</Label>
-                  <Select 
-                      value={gradeContent !== undefined ? String(gradeContent) : undefined} 
-                      onValueChange={(val) => setGradeContent(Number(val))} 
+                  <Label htmlFor="gradeContent-edit">Nota de Conteúdo (0-50)</Label>
+                  <Input
+                      id="gradeContent-edit"
+                      type="number"
+                      placeholder="0-50"
+                      value={gradeContent ?? ''}
+                      onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                                setGradeContent(undefined);
+                                return;
+                            }
+                            let num = parseInt(val, 10);
+                            if (!isNaN(num)) {
+                                if (num > 50) num = 50;
+                                if (num < 0) num = 0;
+                                setGradeContent(num);
+                            }
+                        }}
                       disabled={isLoading}
-                  >
-                      <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {gradeOptions.map((grade) => (
-                              <SelectItem key={`content-edit-${grade}`} value={String(grade)}>{grade}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
+                  />
               </div>
               <div className="space-y-2">
-                  <Label>Nota de Estrutura (0-50)</Label>
-                  <Select 
-                      value={gradeStructure !== undefined ? String(gradeStructure) : undefined} 
-                      onValueChange={(val) => setGradeStructure(Number(val))} 
+                  <Label htmlFor="gradeStructure-edit">Nota de Estrutura (0-50)</Label>
+                   <Input
+                      id="gradeStructure-edit"
+                      type="number"
+                      placeholder="0-50"
+                      value={gradeStructure ?? ''}
+                      onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                                setGradeStructure(undefined);
+                                return;
+                            }
+                            let num = parseInt(val, 10);
+                            if (!isNaN(num)) {
+                                if (num > 50) num = 50;
+                                if (num < 0) num = 0;
+                                setGradeStructure(num);
+                            }
+                        }}
                       disabled={isLoading}
-                  >
-                      <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {gradeOptions.map((grade) => (
-                              <SelectItem key={`structure-edit-${grade}`} value={String(grade)}>{grade}</SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
+                  />
               </div>
               <div className="space-y-2">
                   <Label>Nota Final</Label>
