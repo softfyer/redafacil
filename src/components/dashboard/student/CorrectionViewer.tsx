@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Essay } from '@/lib/services/essayService';
-import { Download, Eye } from 'lucide-react';
+import { Download } from 'lucide-react';
 import Image from 'next/image';
 
 interface CorrectionViewerProps {
@@ -23,6 +23,15 @@ const isImageUrl = (url: string | undefined): boolean => {
     }
 };
 
+// Helper to create a clean and safe filename
+const createCleanFilename = (title: string, suffix: string, url: string): string => {
+    const extensionMatch = url.match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
+    const extension = extensionMatch ? extensionMatch[1] : 'file';
+    const sanitizedTitle = title.replace(/[^a-z0-9\s-]/gi, '').replace(/\s+/g, '_').toLowerCase();
+    return `${sanitizedTitle}_${suffix}.${extension}`;
+};
+
+
 export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionViewerProps) {
   if (!essay || essay.status !== 'corrected') {
     return null;
@@ -30,6 +39,9 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
 
   const formattedFeedback = essay.textFeedback?.replace(/\n/g, '<br />') || 'Nenhum feedback fornecido.';
   const correctedFileIsImage = isImageUrl(essay.correctedFileUrl);
+
+  const originalFilename = essay.fileUrl ? createCleanFilename(essay.title, 'original', essay.fileUrl) : '';
+  const correctedFilename = essay.correctedFileUrl ? createCleanFilename(essay.title, 'corrigido', essay.correctedFileUrl) : '';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -85,15 +97,15 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
 
         <DialogFooter className="flex-shrink-0 flex-col sm:flex-row sm:justify-start gap-2 pt-4">
             {essay.fileUrl && (
-                <a href={essay.fileUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                <a href={`/api/download?url=${encodeURIComponent(essay.fileUrl)}&filename=${encodeURIComponent(originalFilename)}`} download={originalFilename} className="w-full sm:w-auto">
                     <Button type="button" variant="outline" className="w-full">
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver Arquivo Original
+                        <Download className="mr-2 h-4 w-4" />
+                        Baixar Arquivo Original
                     </Button>
                 </a>
             )}
             {essay.correctedFileUrl ? (
-                 <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" download className="w-full sm:w-auto">
+                 <a href={`/api/download?url=${encodeURIComponent(essay.correctedFileUrl)}&filename=${encodeURIComponent(correctedFilename)}`} download={correctedFilename} className="w-full sm:w-auto">
                     <Button type="button" className="w-full">
                         <Download className="mr-2 h-4 w-4" />
                         Baixar Arquivo Corrigido
