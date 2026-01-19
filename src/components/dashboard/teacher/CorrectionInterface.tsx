@@ -18,6 +18,7 @@ import { uploadCorrectedEssayFile, uploadFeedbackAudio, uploadAnnotatedImage } f
 import { submitCorrection } from '@/lib/services/essayService';
 import { AnnotationModal } from './AnnotationModal'; // Importar o novo componente
 import { useUser } from '@/contexts/UserContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Função para verificar se a URL é de uma imagem
 const isImageUrl = (url: string) => {
@@ -51,6 +52,7 @@ type CorrectionInterfaceProps = {
   onBack: () => void;
 };
 
+const gradeOptions = Array.from({ length: 51 }, (_, i) => i);
 
 
 export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: CorrectionInterfaceProps) {
@@ -61,10 +63,14 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
   const [loadingMessage, setLoadingMessage] = useState('Enviando...');
   const [isAnnotationModalOpen, setIsAnnotationModalOpen] = useState(false);
   const [annotatedImageBlob, setAnnotatedImageBlob] = useState<Blob | null>(null);
+  const [gradeContent, setGradeContent] = useState<number | undefined>(undefined);
+  const [gradeStructure, setGradeStructure] = useState<number | undefined>(undefined);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, userData } = useUser();
   const originalMimeType = getMimeTypeFromUrl(essay.fileUrl);
+
+  const gradeFinal = (gradeContent ?? 0) + (gradeStructure ?? 0);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -81,6 +87,14 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             variant: "destructive",
         });
         return;
+    }
+    if (gradeContent === undefined || gradeStructure === undefined) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'As notas de conteúdo e estrutura devem ser preenchidas.',
+        variant: 'destructive',
+      });
+      return;
     }
     if (!essay.id || !essay.studentId) {
         console.error("Essay ID or Student ID is missing.");
@@ -119,6 +133,9 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             textFeedback,
             teacherId: user.uid,
             teacherName: userData.name,
+            gradeContent,
+            gradeStructure,
+            gradeFinal,
         };
 
         if (audioFeedbackUrl) correctionData.audioFeedbackUrl = audioFeedbackUrl;
@@ -218,6 +235,39 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             </div>
 
             <Separator />
+            
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                    <Label>Nota de Conteúdo (0-50)</Label>
+                    <Select onValueChange={(val) => setGradeContent(Number(val))} disabled={isLoading}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {gradeOptions.map((grade) => (
+                                <SelectItem key={`content-${grade}`} value={String(grade)}>{grade}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Nota de Estrutura (0-50)</Label>
+                     <Select onValueChange={(val) => setGradeStructure(Number(val))} disabled={isLoading}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                             {gradeOptions.map((grade) => (
+                                <SelectItem key={`structure-${grade}`} value={String(grade)}>{grade}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Nota Final</Label>
+                    <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
+                </div>
+            </div>
 
             <div className="space-y-2">
               <Label>Feedback por Áudio (Opcional)</Label>
@@ -262,7 +312,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
         </Card>
         
         <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={isLoading || !textFeedback.trim()}>
+          <Button onClick={handleSubmit} disabled={isLoading || !textFeedback.trim() || gradeContent === undefined || gradeStructure === undefined}>
               {isLoading ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {loadingMessage}</>
               ) : (

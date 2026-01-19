@@ -34,6 +34,9 @@ export interface Essay {
   correctedAt?: any; // Timestamp for when the correction was submitted
   teacherId?: string; // ID of the correcting teacher
   teacherName?: string; // Name of the correcting teacher
+  gradeContent?: number;
+  gradeStructure?: number;
+  gradeFinal?: number;
 }
 
 /**

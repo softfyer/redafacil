@@ -26,6 +26,7 @@ import { submitCorrection } from '@/lib/services/essayService';
 import { AudioRecorder } from './AudioRecorder';
 import { AnnotationModal } from './AnnotationModal';
 import { useUser } from '@/contexts/UserContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type EditCorrectionModalProps = {
   essay: Essay | null;
@@ -58,6 +59,8 @@ const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png'
     }
 };
 
+const gradeOptions = Array.from({ length: 51 }, (_, i) => i);
+
 
 export function EditCorrectionModal({
   essay,
@@ -72,21 +75,29 @@ export function EditCorrectionModal({
   const [loadingMessage, setLoadingMessage] = useState('Atualizando...');
   const [isAnnotationModalOpen, setIsAnnotationModalOpen] = useState(false);
   const [annotatedImageBlob, setAnnotatedImageBlob] = useState<Blob | null>(null);
+  const [gradeContent, setGradeContent] = useState<number | undefined>();
+  const [gradeStructure, setGradeStructure] = useState<number | undefined>();
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, userData } = useUser();
   const originalMimeType = getMimeTypeFromUrl(essay?.fileUrl);
+  
+  const gradeFinal = (gradeContent ?? 0) + (gradeStructure ?? 0);
 
   useEffect(() => {
     if (essay && isOpen) {
       setTextFeedback(essay.textFeedback || '');
+      setGradeContent(essay.gradeContent);
+      setGradeStructure(essay.gradeStructure);
     } else if (!isOpen) {
       // Reset state when modal is closed
       setTextFeedback('');
       setAudioBlob(null);
       setNewCorrectedFile(null);
       setAnnotatedImageBlob(null);
+      setGradeContent(undefined);
+      setGradeStructure(undefined);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -126,6 +137,14 @@ export function EditCorrectionModal({
       toast({
         title: 'Campo Obrigatório',
         description: 'O feedback de texto não pode estar vazio.',
+        variant: 'destructive',
+      });
+      return;
+    }
+     if (gradeContent === undefined || gradeStructure === undefined) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'As notas de conteúdo e estrutura devem ser preenchidas.',
         variant: 'destructive',
       });
       return;
@@ -188,6 +207,9 @@ export function EditCorrectionModal({
         teacherName: userData.name,
         correctedAt: essay.correctedAt, 
         status: 'corrected',
+        gradeContent,
+        gradeStructure,
+        gradeFinal
       };
 
       await submitCorrection(essay.id, updatedData);
@@ -257,6 +279,46 @@ export function EditCorrectionModal({
           <DialogTitle>Editar Correção: {essay?.title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                  <Label>Nota de Conteúdo (0-50)</Label>
+                  <Select 
+                      value={gradeContent !== undefined ? String(gradeContent) : undefined} 
+                      onValueChange={(val) => setGradeContent(Number(val))} 
+                      disabled={isLoading}
+                  >
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {gradeOptions.map((grade) => (
+                              <SelectItem key={`content-edit-${grade}`} value={String(grade)}>{grade}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="space-y-2">
+                  <Label>Nota de Estrutura (0-50)</Label>
+                  <Select 
+                      value={gradeStructure !== undefined ? String(gradeStructure) : undefined} 
+                      onValueChange={(val) => setGradeStructure(Number(val))} 
+                      disabled={isLoading}
+                  >
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {gradeOptions.map((grade) => (
+                              <SelectItem key={`structure-edit-${grade}`} value={String(grade)}>{grade}</SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="space-y-2">
+                  <Label>Nota Final</Label>
+                  <Input type="number" value={gradeFinal} readOnly disabled className="font-bold text-lg text-center" />
+              </div>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-text-feedback">Feedback por Texto</Label>
@@ -332,7 +394,7 @@ export function EditCorrectionModal({
               Cancelar
             </Button>
           </DialogClose>
-          <Button onClick={handleUpdate} disabled={isLoading}>
+          <Button onClick={handleUpdate} disabled={isLoading || !textFeedback.trim() || gradeContent === undefined || gradeStructure === undefined}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

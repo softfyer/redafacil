@@ -62,6 +62,24 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                 <p className="text-sm text-muted-foreground"><strong>Tipo de texto:</strong> {essay.textType}</p>
             </div>
 
+             <div className="space-y-2">
+                <h4 className="font-semibold">Notas:</h4>
+                <div className="grid grid-cols-3 gap-4 text-center p-4 border rounded-lg">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Conteúdo</p>
+                        <p className="text-2xl font-bold">{essay.gradeContent ?? 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p className="text-sm text-muted-foreground">Estrutura</p>
+                        <p className="text-2xl font-bold">{essay.gradeStructure ?? 'N/A'}</p>
+                    </div>
+                    <div className="bg-primary/10 rounded-lg p-2 flex flex-col justify-center">
+                        <p className="text-sm text-primary">Nota Final</p>
+                        <p className="text-2xl font-bold text-primary">{essay.gradeFinal ?? 'N/A'}</p>
+                    </div>
+                </div>
+            </div>
+
             <div className="space-y-2">
                 <h4 className="font-semibold">Feedback do Professor:</h4>
                 <div 
