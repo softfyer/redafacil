@@ -33,7 +33,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[825px]">
+      <DialogContent className="sm:max-w-[825px] flex flex-col h-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Correção da Redação: {essay.title}</DialogTitle>
           <DialogDescription>
@@ -41,7 +41,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto pr-4">
+        <div className="flex-1 min-h-0 py-4 space-y-6 overflow-y-auto pr-4">
             <div className="space-y-2">
                 <h4 className="font-semibold">Detalhes da Redação:</h4>
                 <p className="text-sm text-muted-foreground"><strong>Comando da redação:</strong> {essay.promptCommands}</p>
@@ -83,7 +83,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
             )}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row sm:justify-start gap-2 pt-4">
+        <DialogFooter className="flex-shrink-0 flex-col sm:flex-row sm:justify-start gap-2 pt-4">
             {essay.fileUrl && (
                 <a href={essay.fileUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                     <Button type="button" variant="outline" className="w-full">
