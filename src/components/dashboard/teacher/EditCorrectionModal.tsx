@@ -26,7 +26,7 @@ import { submitCorrection } from '@/lib/services/essayService';
 import { AudioRecorder } from './AudioRecorder';
 import { AnnotationModal } from './AnnotationModal';
 import { useUser } from '@/contexts/UserContext';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileViewerModal } from './FileViewerModal';
 
 type EditCorrectionModalProps = {
   essay: Essay | null;
@@ -74,6 +74,7 @@ export function EditCorrectionModal({
   const [annotatedImageBlob, setAnnotatedImageBlob] = useState<Blob | null>(null);
   const [gradeContent, setGradeContent] = useState<number | undefined>();
   const [gradeStructure, setGradeStructure] = useState<number | undefined>();
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -283,9 +284,14 @@ export function EditCorrectionModal({
                 </Label>
                 {essay?.correctedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
                 <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
-                    <a href={essay.correctedFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate">
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="text-sm font-medium p-0 h-auto"
+                        onClick={() => setIsViewerOpen(true)}
+                    >
                         Ver arquivo corrigido atual
-                    </a>
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('correctedFile')} disabled={isLoading}>
                         <X className="h-4 w-4" />
                     </Button>
@@ -421,6 +427,13 @@ export function EditCorrectionModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
+    <FileViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        fileUrl={essay?.correctedFileUrl}
+        title={essay?.title || 'Arquivo Corrigido'}
+    />
 
     {essay?.id && isImageUrl(essay.fileUrl) && (
         <AnnotationModal
