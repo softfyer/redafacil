@@ -197,20 +197,13 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (originalMimeType === 'image/jpeg') {
-        canvas.toBlob((blob) => {
-            if (blob) {
-                onSave(blob);
-            }
-        }, 'image/jpeg', 0.9); // Use JPEG with 90% quality
-    } else {
-        // Default to PNG for other types or if original is PNG
-        canvas.toBlob((blob) => {
-            if (blob) {
-                onSave(blob);
-            }
-        }, 'image/png');
-    }
+    // Always save as JPEG for better compression, as most uploads will be photos.
+    // This significantly reduces file size compared to PNG.
+    canvas.toBlob((blob) => {
+        if (blob) {
+            onSave(blob);
+        }
+    }, 'image/jpeg', 0.9); // Use JPEG with 90% quality
   };
 
   return (
