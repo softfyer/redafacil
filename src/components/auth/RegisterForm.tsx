@@ -21,12 +21,11 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Feather, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Feather, UserPlus, Eye, EyeOff, MailCheck } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { addStudent } from '@/lib/services/studentService';
 
@@ -41,11 +40,12 @@ const formSchema = z.object({
 });
 
 export function RegisterForm() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,15 +78,12 @@ export function RegisterForm() {
         email: values.email,
       });
 
-      // 4. Inform the user to check their email
-      toast({
-        title: 'Cadastro quase completo!',
-        description: 'Enviamos um link de confirmação para o seu e-mail. Por favor, verifique sua caixa de entrada e spam para ativar sua conta.',
-        duration: 8000, // Longer duration for this important message
-      });
+      // 4. Sign the user out to prevent automatic login state
+      await signOut(auth);
 
-      // 5. Redirect to login page
-      router.push('/login');
+      // 5. Show success screen
+      setSubmittedEmail(values.email);
+      setIsSubmitted(true);
 
     } catch (error: any) {
       let message = 'Ocorreu um erro ao criar a conta. Tente novamente.';
@@ -101,6 +98,33 @@ export function RegisterForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isSubmitted) {
+    return (
+        <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                    <MailCheck className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="text-2xl font-bold tracking-tight">Cadastro efetuado!</CardTitle>
+                <CardDescription>Um e-mail de confirmação foi enviado para você.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-center text-sm text-muted-foreground">
+                    Por favor, acesse <span className="font-medium text-foreground">{submittedEmail}</span> e clique no link de verificação para ativar sua conta.
+                </p>
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                    Não se esqueça de checar sua caixa de spam.
+                </p>
+            </CardContent>
+            <CardFooter>
+                <Button className="w-full" asChild>
+                    <Link href="/login">Ir para o Login</Link>
+                </Button>
+            </CardFooter>
+        </Card>
+    );
   }
 
   return (
