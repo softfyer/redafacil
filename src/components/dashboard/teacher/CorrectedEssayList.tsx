@@ -15,11 +15,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle, Inbox, Loader2, Search, Edit } from 'lucide-react';
+import { CheckCircle, Inbox, Loader2, Search, Edit, Eye } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { EditCorrectionModal } from './EditCorrectionModal'; // Import the modal
+import { CorrectionViewer } from '@/components/dashboard/student/CorrectionViewer';
 import type { Essay } from '@/lib/services/essayService'; // Ensure type is imported
 
 // Enrich the Essay type for local state management
@@ -35,7 +36,8 @@ export function CorrectedEssayList() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [totalEssays, setTotalEssays] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedEssay, setSelectedEssay] = useState<EnrichedEssay | null>(null);
 
   // Using useCallback for a stable function reference
@@ -101,16 +103,28 @@ export function CorrectedEssayList() {
 
   const handleEditClick = (essay: EnrichedEssay) => {
     setSelectedEssay(essay);
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
+  };
+  
+  const handleViewClick = (essay: EnrichedEssay) => {
+    setSelectedEssay(essay);
+    setIsViewModalOpen(true);
   };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
     setSelectedEssay(null);
   };
 
+  const handleViewModalOpenChange = (open: boolean) => {
+    setIsViewModalOpen(open);
+    if (!open) {
+      setSelectedEssay(null);
+    }
+  }
+
   const handleCorrectionUpdated = () => {
-    handleModalClose();
+    handleEditModalClose();
     fetchCorrectedEssays(); // Re-fetch the list to show updated data
   };
 
@@ -168,6 +182,10 @@ export function CorrectedEssayList() {
                         </ClientOnly>
                     </TableCell>
                     <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleViewClick(essay)}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Visualizar Correção</span>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleEditClick(essay)}>
                             <Edit className="h-4 w-4" />
                             <span className="sr-only">Editar Correção</span>
@@ -189,12 +207,18 @@ export function CorrectedEssayList() {
         </CardContent>
         </Card>
 
-        {/* Render the modal */}
+        {/* Render the modals */}
         <EditCorrectionModal
-            isOpen={isModalOpen}
-            onClose={handleModalClose}
+            isOpen={isEditModalOpen}
+            onClose={handleEditModalClose}
             essay={selectedEssay}
             onCorrectionUpdated={handleCorrectionUpdated}
+        />
+
+        <CorrectionViewer 
+            isOpen={isViewModalOpen}
+            onOpenChange={handleViewModalOpenChange}
+            essay={selectedEssay}
         />
     </>
   );
