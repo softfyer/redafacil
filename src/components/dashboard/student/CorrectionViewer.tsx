@@ -42,6 +42,10 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
 
   const originalFilename = essay.fileUrl ? createCleanFilename(essay.title, 'original', essay.fileUrl) : '';
   const correctedFilename = essay.correctedFileUrl ? createCleanFilename(essay.title, 'corrigido', essay.correctedFileUrl) : '';
+  
+  const safeCorrectedImageUrl = correctedFileIsImage && essay.correctedFileUrl 
+    ? `/api/image-proxy?url=${encodeURIComponent(essay.correctedFileUrl)}` 
+    : '';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -97,12 +101,12 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
                 </div>
             )}
             
-            {correctedFileIsImage && essay.correctedFileUrl && (
+            {correctedFileIsImage && safeCorrectedImageUrl && (
                 <div className="space-y-2">
                     <h4 className="font-semibold">Redação Corrigida (Com Anotações):</h4>
                     <div className="relative w-full border rounded-md overflow-hidden">
                         <Image
-                            src={essay.correctedFileUrl}
+                            src={safeCorrectedImageUrl}
                             alt="Redação corrigida com anotações"
                             width={800}
                             height={1120} // Approximate A4 aspect ratio
