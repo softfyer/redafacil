@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Inbox, Loader2, Edit, Eye } from 'lucide-react';
+import { Inbox, Loader2, Edit, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,27 +32,32 @@ export type EnrichedEssay = Essay & {
   teacherName?: string;
 };
 
-// Generate a list of unique months from the essays for the filter dropdown
-const getUniqueMonths = (essays: EnrichedEssay[]): {label: string, value: string}[] => {
-    const monthSet = new Set<string>();
+const getUniqueYears = (essays: EnrichedEssay[]): string[] => {
+    const yearSet = new Set<string>();
     essays.forEach(essay => {
         if (essay.correctedAt) {
-            const month = format(essay.correctedAt, 'yyyy-MM');
-            monthSet.add(month);
+            yearSet.add(format(essay.correctedAt, 'yyyy'));
         }
     });
-
-    return Array.from(monthSet).map(monthStr => {
-        const [year, month] = monthStr.split('-').map(Number);
-        // The month in `new Date()` is 0-indexed, so we subtract 1.
-        // We use day 2 to avoid timezone issues that could shift the date to the previous month.
-        const date = new Date(year, month - 1, 2);
-        return {
-            value: monthStr,
-            label: format(date, 'MMMM de yyyy', { locale: ptBR })
-        };
-    }).sort((a, b) => b.value.localeCompare(a.value)); // Sort descending
+    return Array.from(yearSet).sort((a, b) => b.localeCompare(a)); // Sort descending
 };
+
+const months = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' },
+];
+
+const ESSAYS_PER_PAGE = 50;
 
 export function CorrectedEssayList() {
   const [essays, setEssays] = useState<EnrichedEssay[]>([]);
@@ -61,7 +66,9 @@ export function CorrectedEssayList() {
   // Filter states
   const [studentNameFilter, setStudentNameFilter] = useState('');
   const [teacherNameFilter, setTeacherNameFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -118,17 +125,29 @@ export function CorrectedEssayList() {
     fetchCorrectedEssays();
   }, [fetchCorrectedEssays]);
 
-  const uniqueMonths = useMemo(() => getUniqueMonths(essays), [essays]);
+  const uniqueYears = useMemo(() => getUniqueYears(essays), [essays]);
 
   const filteredEssays = useMemo(() => {
     return essays.filter(essay => {
       const studentMatch = studentNameFilter ? essay.studentName.toLowerCase().includes(studentNameFilter.toLowerCase()) : true;
       const teacherMatch = teacherNameFilter ? (essay.teacherName ?? '').toLowerCase().includes(teacherNameFilter.toLowerCase()) : true;
-      const monthMatch = !monthFilter || monthFilter === 'all-months' ? true : (essay.correctedAt && format(essay.correctedAt, 'yyyy-MM') === monthFilter);
+      const yearMatch = !yearFilter || (essay.correctedAt && format(essay.correctedAt, 'yyyy') === yearFilter);
+      const monthMatch = !monthFilter || (essay.correctedAt && format(essay.correctedAt, 'MM') === monthFilter);
       
-      return studentMatch && teacherMatch && monthMatch;
+      return studentMatch && teacherMatch && yearMatch && monthMatch;
     });
-  }, [essays, studentNameFilter, teacherNameFilter, monthFilter]);
+  }, [essays, studentNameFilter, teacherNameFilter, yearFilter, monthFilter]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [studentNameFilter, teacherNameFilter, yearFilter, monthFilter]);
+
+  const totalPages = Math.ceil(filteredEssays.length / ESSAYS_PER_PAGE);
+  const paginatedEssays = useMemo(() => {
+    const startIndex = (currentPage - 1) * ESSAYS_PER_PAGE;
+    return filteredEssays.slice(startIndex, startIndex + ESSAYS_PER_PAGE);
+  }, [filteredEssays, currentPage]);
 
 
   const handleEditClick = (essay: EnrichedEssay) => {
@@ -166,7 +185,7 @@ export function CorrectedEssayList() {
             <CardDescription>
             {isLoading ? 'Buscando histórico...' : `${filteredEssays.length} redação(ões) encontrada(s).`}
             </CardDescription>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-4">
               <Input
                   placeholder="Filtrar por aluno..."
                   value={studentNameFilter}
@@ -179,13 +198,24 @@ export function CorrectedEssayList() {
                   onChange={(e) => setTeacherNameFilter(e.target.value)}
                   disabled={isLoading}
               />
-              <Select onValueChange={setMonthFilter} value={monthFilter} disabled={isLoading}>
+              <Select onValueChange={setYearFilter} value={yearFilter} disabled={isLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos os anos</SelectItem>
+                  {uniqueYears.map(year => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+               <Select onValueChange={setMonthFilter} value={monthFilter} disabled={isLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filtrar por mês" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all-months">Todos os meses</SelectItem>
-                  {uniqueMonths.map(month => (
+                  <SelectItem value="">Todos os meses</SelectItem>
+                  {months.map(month => (
                     <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -197,7 +227,8 @@ export function CorrectedEssayList() {
             <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            ) : filteredEssays.length > 0 ? (
+            ) : paginatedEssays.length > 0 ? (
+            <>
             <Table>
                 <TableHeader>
                 <TableRow>
@@ -209,7 +240,7 @@ export function CorrectedEssayList() {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredEssays.map((essay) => (
+                {paginatedEssays.map((essay) => (
                     <TableRow key={essay.id}>
                     <TableCell className="font-medium">{essay.studentName}</TableCell>
                     <TableCell className="hidden sm:table-cell max-w-xs truncate">{essay.title}</TableCell>
@@ -235,6 +266,28 @@ export function CorrectedEssayList() {
                 ))}
                 </TableBody>
             </Table>
+             <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                    Página {currentPage} de {totalPages > 0 ? totalPages : 1}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    disabled={currentPage === 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={currentPage >= totalPages}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+            </>
             ) : (
             <div className="text-center py-12">
                 <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
