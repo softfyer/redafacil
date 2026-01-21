@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { EditCorrectionModal } from './EditCorrectionModal'; // Import the modal
 import { CorrectionViewer } from '@/components/dashboard/student/CorrectionViewer';
 import type { Essay } from '@/lib/services/essayService'; // Ensure type is imported
+import { useUser } from '@/contexts/UserContext';
 
 // Enrich the Essay type for local state management
 export type EnrichedEssay = Essay & {
@@ -39,6 +40,7 @@ export function CorrectedEssayList() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedEssay, setSelectedEssay] = useState<EnrichedEssay | null>(null);
+  const { user } = useUser();
 
   // Using useCallback for a stable function reference
   const fetchCorrectedEssays = useCallback(async () => {
@@ -186,10 +188,12 @@ export function CorrectedEssayList() {
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">Visualizar Correção</span>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(essay)}>
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Editar Correção</span>
-                        </Button>
+                        {user && user.uid === essay.teacherId && (
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(essay)}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Editar Correção</span>
+                            </Button>
+                        )}
                     </TableCell>
                     </TableRow>
                 ))}
