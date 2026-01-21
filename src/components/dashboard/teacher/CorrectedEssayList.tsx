@@ -42,11 +42,16 @@ const getUniqueMonths = (essays: EnrichedEssay[]): {label: string, value: string
         }
     });
 
-    return Array.from(monthSet).map(monthStr => ({
-        value: monthStr,
-        // Format to 'MMMM de yyyy' for display, handling potential timezone issues by setting day to 02
-        label: format(new Date(monthStr.split('-')[0], Number(monthStr.split('-')[1]) - 1, 2), 'MMMM de yyyy', { locale: ptBR })
-    })).sort((a, b) => b.value.localeCompare(a.value)); // Sort descending
+    return Array.from(monthSet).map(monthStr => {
+        const [year, month] = monthStr.split('-').map(Number);
+        // The month in `new Date()` is 0-indexed, so we subtract 1.
+        // We use day 2 to avoid timezone issues that could shift the date to the previous month.
+        const date = new Date(year, month - 1, 2);
+        return {
+            value: monthStr,
+            label: format(date, 'MMMM de yyyy', { locale: ptBR })
+        };
+    }).sort((a, b) => b.value.localeCompare(a.value)); // Sort descending
 };
 
 export function CorrectedEssayList() {
@@ -58,7 +63,6 @@ export function CorrectedEssayList() {
   const [teacherNameFilter, setTeacherNameFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
 
-  const [totalEssays, setTotalEssays] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedEssay, setSelectedEssay] = useState<EnrichedEssay | null>(null);
@@ -78,8 +82,6 @@ export function CorrectedEssayList() {
         id: doc.id,
         ...doc.data(),
       })) as (Essay & { submittedAt: any, correctedAt: any })[];
-
-      setTotalEssays(essaysFromDB.length);
 
       if (essaysFromDB.length > 0) {
         const studentIds = [...new Set(essaysFromDB.map(e => e.studentId))].filter(id => id);
@@ -162,7 +164,7 @@ export function CorrectedEssayList() {
         <CardHeader>
             <CardTitle>Redações Corrigidas</CardTitle>
             <CardDescription>
-            {isLoading ? 'Buscando histórico...' : `Total de ${totalEssays} redação(ões) corrigida(s). Exibindo ${filteredEssays.length} resultado(s).`}
+            {isLoading ? 'Buscando histórico...' : `${filteredEssays.length} redação(ões) encontrada(s).`}
             </CardDescription>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
               <Input
