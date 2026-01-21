@@ -59,7 +59,7 @@ export default function AppSidebar({ userRole }: AppSidebarProps) {
             <SidebarHeader>
                 <Link href={dashboardPath} className="flex items-center gap-2">
                     <Feather className="w-8 h-8 text-primary" />
-                    <h1 className="text-xl font-bold tracking-tighter text-foreground">Redação Online</h1>
+                    <h1 className="text-xl font-bold tracking-tighter text-foreground">RedaFácil</h1>
                 </Link>
             </SidebarHeader>
             <SidebarContent>
