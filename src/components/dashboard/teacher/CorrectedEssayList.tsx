@@ -122,7 +122,7 @@ export function CorrectedEssayList() {
     return essays.filter(essay => {
       const studentMatch = studentNameFilter ? essay.studentName.toLowerCase().includes(studentNameFilter.toLowerCase()) : true;
       const teacherMatch = teacherNameFilter ? (essay.teacherName ?? '').toLowerCase().includes(teacherNameFilter.toLowerCase()) : true;
-      const monthMatch = monthFilter ? (essay.correctedAt && format(essay.correctedAt, 'yyyy-MM') === monthFilter) : true;
+      const monthMatch = !monthFilter || monthFilter === 'all-months' ? true : (essay.correctedAt && format(essay.correctedAt, 'yyyy-MM') === monthFilter);
       
       return studentMatch && teacherMatch && monthMatch;
     });
@@ -182,7 +182,7 @@ export function CorrectedEssayList() {
                   <SelectValue placeholder="Filtrar por mês" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os meses</SelectItem>
+                  <SelectItem value="all-months">Todos os meses</SelectItem>
                   {uniqueMonths.map(month => (
                     <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                   ))}
