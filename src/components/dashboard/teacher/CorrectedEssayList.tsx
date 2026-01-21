@@ -131,8 +131,9 @@ export function CorrectedEssayList() {
     return essays.filter(essay => {
       const studentMatch = studentNameFilter ? essay.studentName.toLowerCase().includes(studentNameFilter.toLowerCase()) : true;
       const teacherMatch = teacherNameFilter ? (essay.teacherName ?? '').toLowerCase().includes(teacherNameFilter.toLowerCase()) : true;
-      const yearMatch = !yearFilter || (essay.correctedAt && format(essay.correctedAt, 'yyyy') === yearFilter);
-      const monthMatch = !monthFilter || (essay.correctedAt && format(essay.correctedAt, 'MM') === monthFilter);
+      
+      const yearMatch = !yearFilter || yearFilter === 'all' || (essay.correctedAt && format(essay.correctedAt, 'yyyy') === yearFilter);
+      const monthMatch = !monthFilter || monthFilter === 'all' || (essay.correctedAt && format(essay.correctedAt, 'MM') === monthFilter);
       
       return studentMatch && teacherMatch && yearMatch && monthMatch;
     });
@@ -203,7 +204,7 @@ export function CorrectedEssayList() {
                   <SelectValue placeholder="Filtrar por ano" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os anos</SelectItem>
+                  <SelectItem value="all">Todos os anos</SelectItem>
                   {uniqueYears.map(year => (
                     <SelectItem key={year} value={year}>{year}</SelectItem>
                   ))}
@@ -214,7 +215,7 @@ export function CorrectedEssayList() {
                   <SelectValue placeholder="Filtrar por mês" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os meses</SelectItem>
+                  <SelectItem value="all">Todos os meses</SelectItem>
                   {months.map(month => (
                     <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                   ))}
