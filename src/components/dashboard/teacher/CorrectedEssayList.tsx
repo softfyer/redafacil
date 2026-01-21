@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, startAfter, endBefore, DocumentData, QueryDocumentSnapshot, documentId } from 'firebase/firestore';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { collection, query, where, orderBy, getDocs, documentId } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,13 +15,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle, Inbox, Loader2, Search, Edit, Eye } from 'lucide-react';
+import { Inbox, Loader2, Edit, Eye } from 'lucide-react';
 import { ClientOnly } from '@/components/ui/client-only';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { EditCorrectionModal } from './EditCorrectionModal'; // Import the modal
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EditCorrectionModal } from './EditCorrectionModal';
 import { CorrectionViewer } from '@/components/dashboard/student/CorrectionViewer';
-import type { Essay } from '@/lib/services/essayService'; // Ensure type is imported
+import type { Essay } from '@/lib/services/essayService';
 import { useUser } from '@/contexts/UserContext';
 
 // Enrich the Essay type for local state management
@@ -32,34 +32,45 @@ export type EnrichedEssay = Essay & {
   teacherName?: string;
 };
 
+// Generate a list of unique months from the essays for the filter dropdown
+const getUniqueMonths = (essays: EnrichedEssay[]): {label: string, value: string}[] => {
+    const monthSet = new Set<string>();
+    essays.forEach(essay => {
+        if (essay.correctedAt) {
+            const month = format(essay.correctedAt, 'yyyy-MM');
+            monthSet.add(month);
+        }
+    });
+
+    return Array.from(monthSet).map(monthStr => ({
+        value: monthStr,
+        // Format to 'MMMM de yyyy' for display, handling potential timezone issues by setting day to 02
+        label: format(new Date(monthStr.split('-')[0], Number(monthStr.split('-')[1]) - 1, 2), 'MMMM de yyyy', { locale: ptBR })
+    })).sort((a, b) => b.value.localeCompare(a.value)); // Sort descending
+};
+
 export function CorrectedEssayList() {
   const [essays, setEssays] = useState<EnrichedEssay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Filter states
+  const [studentNameFilter, setStudentNameFilter] = useState('');
+  const [teacherNameFilter, setTeacherNameFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+
   const [totalEssays, setTotalEssays] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedEssay, setSelectedEssay] = useState<EnrichedEssay | null>(null);
   const { user } = useUser();
 
-  // Using useCallback for a stable function reference
   const fetchCorrectedEssays = useCallback(async () => {
     setIsLoading(true);
     try {
-      const countQuery = query(collection(db, 'essays'), where('status', '==', 'corrected'));
-      const countSnapshot = await getDocs(countQuery);
-      setTotalEssays(countSnapshot.size);
-
-      if (countSnapshot.empty) {
-        setEssays([]);
-        return;
-      }
-
       const essaysQuery = query(
         collection(db, 'essays'),
         where('status', '==', 'corrected'),
-        orderBy('correctedAt', 'desc'),
-        limit(20) // Increased limit for better visibility
+        orderBy('correctedAt', 'desc')
       );
 
       const essaySnapshots = await getDocs(essaysQuery);
@@ -67,6 +78,8 @@ export function CorrectedEssayList() {
         id: doc.id,
         ...doc.data(),
       })) as (Essay & { submittedAt: any, correctedAt: any })[];
+
+      setTotalEssays(essaysFromDB.length);
 
       if (essaysFromDB.length > 0) {
         const studentIds = [...new Set(essaysFromDB.map(e => e.studentId))].filter(id => id);
@@ -97,11 +110,24 @@ export function CorrectedEssayList() {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Empty dependency array means this function is created once
+  }, []);
 
   useEffect(() => {
     fetchCorrectedEssays();
   }, [fetchCorrectedEssays]);
+
+  const uniqueMonths = useMemo(() => getUniqueMonths(essays), [essays]);
+
+  const filteredEssays = useMemo(() => {
+    return essays.filter(essay => {
+      const studentMatch = studentNameFilter ? essay.studentName.toLowerCase().includes(studentNameFilter.toLowerCase()) : true;
+      const teacherMatch = teacherNameFilter ? (essay.teacherName ?? '').toLowerCase().includes(teacherNameFilter.toLowerCase()) : true;
+      const monthMatch = monthFilter ? (essay.correctedAt && format(essay.correctedAt, 'yyyy-MM') === monthFilter) : true;
+      
+      return studentMatch && teacherMatch && monthMatch;
+    });
+  }, [essays, studentNameFilter, teacherNameFilter, monthFilter]);
+
 
   const handleEditClick = (essay: EnrichedEssay) => {
     setSelectedEssay(essay);
@@ -130,30 +156,38 @@ export function CorrectedEssayList() {
     fetchCorrectedEssays(); // Re-fetch the list to show updated data
   };
 
-  const filteredEssays = essays.filter(
-    (essay) =>
-      essay.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (essay.studentName && essay.studentName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (essay.teacherName && essay.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   return (
     <>
       <Card>
         <CardHeader>
             <CardTitle>Redações Corrigidas</CardTitle>
             <CardDescription>
-            {isLoading ? 'Buscando histórico...' : `Total de ${totalEssays} redação(ões) corrigida(s).`}
+            {isLoading ? 'Buscando histórico...' : `Total de ${totalEssays} redação(ões) corrigida(s). Exibindo ${filteredEssays.length} resultado(s).`}
             </CardDescription>
-            <div className="relative pt-4">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-                placeholder="Pesquisar por título, aluno ou professor..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled={isLoading}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+              <Input
+                  placeholder="Filtrar por aluno..."
+                  value={studentNameFilter}
+                  onChange={(e) => setStudentNameFilter(e.target.value)}
+                  disabled={isLoading}
+              />
+              <Input
+                  placeholder="Filtrar por professor..."
+                  value={teacherNameFilter}
+                  onChange={(e) => setTeacherNameFilter(e.target.value)}
+                  disabled={isLoading}
+              />
+              <Select onValueChange={setMonthFilter} value={monthFilter} disabled={isLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos os meses</SelectItem>
+                  {uniqueMonths.map(month => (
+                    <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
         </CardHeader>
         <CardContent>
@@ -202,9 +236,9 @@ export function CorrectedEssayList() {
             ) : (
             <div className="text-center py-12">
                 <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Nenhuma redação corrigida</h3>
+                <h3 className="mt-4 text-lg font-semibold">Nenhum resultado encontrado</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                O histórico de redações que você corrigiu aparecerá aqui.
+                    Tente ajustar seus filtros ou aguarde novas correções.
                 </p>
             </div>
             )}
