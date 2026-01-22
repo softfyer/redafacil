@@ -200,7 +200,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     <div className="flex flex-col gap-4 items-center w-full h-full">
       <div className="flex flex-wrap gap-2 items-center p-2 border rounded-md bg-card">
         <Button
-            variant={isDrawingMode ? 'secondary' : 'outline'}
+            variant={isDrawingMode ? 'default' : 'outline'}
             size="icon"
             onClick={() => setIsDrawingMode((prev) => !prev)}
             title="Ativar/Desativar modo de anotação"
