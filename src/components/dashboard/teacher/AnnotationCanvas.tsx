@@ -3,9 +3,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eraser, ZoomIn, ZoomOut, Redo2 } from 'lucide-react';
+import { Eraser, ZoomIn, ZoomOut, Redo2, Pen } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface Stroke {
   points: { x: number; y: number }[];
@@ -23,6 +24,7 @@ interface AnnotationCanvasProps {
 export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
   const [brushColor, setBrushColor] = useState('#FF0000'); // Default to red
   const [brushSize, setBrushSize] = useState(3);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
@@ -48,12 +50,9 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
         clientY = event.clientY;
     }
     
-    // Adjust for canvas scaling and zoom
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // The coordinates need to be adjusted for the CSS zoom of the canvas element
-    // We calculate the mouse position relative to the element and then scale it to the canvas resolution
     const canvasX = (clientX - rect.left) * scaleX;
     const canvasY = (clientY - rect.top) * scaleY;
     
@@ -68,11 +67,9 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || !originalImageRef.current) return;
 
-    // Clear and draw the base image
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height);
 
-    // Redraw all saved strokes
     strokes.forEach(stroke => {
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
@@ -90,7 +87,6 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     });
   }, [strokes]);
 
-  // Load image and set canvas dimensions
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -100,17 +96,14 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     const image = new Image();
     image.crossOrigin = "anonymous";
     
-    // Use the proxy API route to fetch the image and bypass CORS issues
     const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
     image.src = proxyUrl;
     
     image.onload = () => {
       originalImageRef.current = image;
-      // Set canvas resolution to match image
       canvas.width = image.naturalWidth;
       canvas.height = image.naturalHeight;
       
-      // Load existing strokes from localStorage
       try {
         const savedStrokes = localStorage.getItem(storageKey);
         if (savedStrokes) {
@@ -134,6 +127,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
   }, [strokes, redrawCanvas]);
 
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawingMode) return;
     setIsDrawing(true);
     const { x, y } = getCoordinates(event);
     currentPathRef.current = [{ x, y }];
@@ -149,7 +143,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
   };
 
   const draw = (event: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
+    if (!isDrawing || !isDrawingMode) return;
     const { x, y } = getCoordinates(event);
     currentPathRef.current.push({ x, y });
 
@@ -160,7 +154,7 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
   };
 
   const stopDrawing = () => {
-    if (!isDrawing) return;
+    if (!isDrawing || !isDrawingMode) return;
     setIsDrawing(false);
     
     const newStroke: Stroke = {
@@ -188,27 +182,32 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     } catch (error) {
         console.error("Failed to remove strokes from localStorage", error);
     }
-    // This will trigger the useEffect to redraw the canvas without strokes
   }
 
   const handleSave = () => {
-    // Redraw one last time to ensure everything is on the canvas
     redrawCanvas();
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Always save as JPEG for better compression, as most uploads will be photos.
-    // This significantly reduces file size compared to PNG.
     canvas.toBlob((blob) => {
         if (blob) {
             onSave(blob);
         }
-    }, 'image/jpeg', 0.9); // Use JPEG with 90% quality
+    }, 'image/jpeg', 0.9);
   };
 
   return (
     <div className="flex flex-col gap-4 items-center w-full h-full">
       <div className="flex flex-wrap gap-2 items-center p-2 border rounded-md bg-card">
+        <Button
+            variant={isDrawingMode ? 'secondary' : 'outline'}
+            size="icon"
+            onClick={() => setIsDrawingMode((prev) => !prev)}
+            title="Ativar/Desativar modo de anotação"
+        >
+            <Pen className="w-4 h-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6 mx-2" />
         <Label>Cor:</Label>
         <div className="flex gap-1">
             {colors.map(color => (
@@ -258,9 +257,12 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
             onTouchStart={startDrawing}
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
-            className="cursor-crosshair origin-top-left"
+            className={cn(
+                "origin-top-left",
+                isDrawingMode ? "cursor-crosshair" : "cursor-grab"
+            )}
             style={{ 
-                touchAction: 'none', // Prevents page scroll on touch devices
+                touchAction: isDrawingMode ? 'none' : 'auto',
                 transform: `scale(${zoomLevel})`,
             }} 
         />
