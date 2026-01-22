@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AnnotationCanvas } from './AnnotationCanvas';
+import { AnnotationCanvas, type AnnotationCanvasActions } from './AnnotationCanvas';
 
 interface AnnotationModalProps {
   isOpen: boolean;
@@ -22,28 +23,36 @@ interface AnnotationModalProps {
 }
 
 export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, originalMimeType }: AnnotationModalProps) {
+  const canvasRef = useRef<AnnotationCanvasActions>(null);
 
-  // We need a way to pass the save action from the canvas up to the modal's parent.
-  // We'll pass the `onSave` prop directly to the canvas.
-  // The canvas component itself will have the "Save" button.
+  const handleSaveClick = () => {
+    canvasRef.current?.handleSave();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full h-[90vh] flex flex-col md:max-w-full lg:max-w-4xl">
-        <DialogHeader>
+      <DialogContent className="w-full h-full max-h-[95vh] flex flex-col p-2 md:max-w-full lg:max-w-4xl sm:p-4">
+        <DialogHeader className="flex-shrink-0 p-0 sm:p-2">
           <DialogTitle>Anotar na Redação</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="hidden sm:block">
             Use as ferramentas para desenhar e aplicar zoom. Suas anotações são salvas localmente. Clique em Salvar Anotações para gerar a imagem final.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 min-h-0">
-          <AnnotationCanvas imageUrl={imageUrl} essayId={essayId} onSave={onSave} originalMimeType={originalMimeType} />
+          <AnnotationCanvas 
+            ref={canvasRef}
+            imageUrl={imageUrl} 
+            essayId={essayId} 
+            onSave={onSave} 
+            originalMimeType={originalMimeType} 
+          />
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 pt-2 flex-row justify-end gap-2">
+          <Button onClick={handleSaveClick} size="sm">Salvar Anotações</Button>
           <DialogClose asChild>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" size="sm">
               Fechar
             </Button>
           </DialogClose>

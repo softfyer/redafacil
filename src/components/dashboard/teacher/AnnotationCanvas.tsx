@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Eraser, ZoomIn, ZoomOut, Redo2, Pen } from 'lucide-react';
@@ -14,6 +14,10 @@ interface Stroke {
   size: number;
 }
 
+export interface AnnotationCanvasActions {
+    handleSave: () => void;
+}
+
 interface AnnotationCanvasProps {
   imageUrl: string;
   essayId: string;
@@ -21,7 +25,8 @@ interface AnnotationCanvasProps {
   originalMimeType: 'image/jpeg' | 'image/png';
 }
 
-export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }: AnnotationCanvasProps) {
+const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCanvasProps>(
+    ({ imageUrl, essayId, onSave, originalMimeType }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false);
@@ -196,32 +201,37 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
     }, 'image/jpeg', 0.9);
   };
 
+  useImperativeHandle(ref, () => ({
+    handleSave,
+  }));
+
   return (
-    <div className="flex flex-col gap-4 items-center w-full h-full">
-      <div className="flex flex-wrap gap-2 items-center p-2 border rounded-md bg-card">
+    <div className="flex flex-col gap-2 items-center w-full h-full">
+      <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
         <Button
             variant={isDrawingMode ? 'default' : 'outline'}
             size="icon"
+            className="h-8 w-8"
             onClick={() => setIsDrawingMode((prev) => !prev)}
             title="Ativar/Desativar modo de anotação"
         >
             <Pen className="w-4 h-4" />
         </Button>
-        <Separator orientation="vertical" className="h-6 mx-2" />
-        <Label>Cor:</Label>
+        <Separator orientation="vertical" className="h-5 mx-1" />
+        <Label className="text-xs">Cor:</Label>
         <div className="flex gap-1">
             {colors.map(color => (
                 <button 
                     key={color}
                     onClick={() => setBrushColor(color)}
-                    className={`w-6 h-6 rounded-full border-2 ${brushColor === color ? 'border-ring' : 'border-transparent'}`}
+                    className={`w-5 h-5 rounded-full border-2 ${brushColor === color ? 'border-ring' : 'border-transparent'}`}
                     style={{ backgroundColor: color }}
                 />
             ))}
         </div>
-        <Separator orientation="vertical" className="h-6 mx-2"/>
-        <div className="flex items-center gap-2">
-            <Label htmlFor="brush-size">Tamanho:</Label>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        <div className="flex items-center gap-1">
+            <Label htmlFor="brush-size" className="text-xs">Tamanho:</Label>
             <Slider
                 id="brush-size"
                 min={1}
@@ -229,19 +239,19 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
                 step={1}
                 value={[brushSize]}
                 onValueChange={(value) => setBrushSize(value[0])}
-                className="w-24"
+                className="w-20"
             />
         </div>
-        <Separator orientation="vertical" className="h-6 mx-2"/>
-        <div className="flex items-center gap-2">
-            <Label>Zoom:</Label>
-            <Button variant="outline" size="icon" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
-            <Button variant="outline" size="icon" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
-            <Button variant="outline" size="icon" onClick={() => setZoomLevel(1)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
-            <span className="text-sm font-mono w-12 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        <div className="flex items-center gap-1">
+            <Label className="text-xs">Zoom:</Label>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(1)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
+            <span className="text-xs font-mono w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
         </div>
-        <Separator orientation="vertical" className="h-6 mx-2"/>
-        <Button variant="outline" size="icon" onClick={handleClearAnnotations}>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleClearAnnotations}>
           <Eraser className="w-4 h-4" />
           <span className="sr-only">Limpar anotações</span>
         </Button>
@@ -267,7 +277,9 @@ export function AnnotationCanvas({ imageUrl, essayId, onSave, originalMimeType }
             }} 
         />
       </div>
-       <Button onClick={handleSave}>Salvar Anotações</Button>
     </div>
   );
-}
+});
+AnnotationCanvas.displayName = 'AnnotationCanvas';
+
+export { AnnotationCanvas };
