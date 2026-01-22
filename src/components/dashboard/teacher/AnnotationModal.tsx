@@ -29,7 +29,7 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, or
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col">
+      <DialogContent className="w-full h-[90vh] flex flex-col md:max-w-full lg:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Anotar na Redação</DialogTitle>
           <DialogDescription>
