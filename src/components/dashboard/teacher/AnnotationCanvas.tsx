@@ -254,21 +254,20 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         setInteractionMode('draw');
         // Start drawing from the initial touch point
         startDrawing(event);
-    }, 100); // 100ms hold gesture
+    }, 300); // 300ms hold gesture
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
       if (event.touches.length !== 1) return;
       event.preventDefault();
       
-      // If the user starts moving their finger, it's a pan/scroll gesture.
-      // Clear the timeout that would switch to draw mode.
-      if (holdTimeoutRef.current) {
-          clearTimeout(holdTimeoutRef.current);
-          holdTimeoutRef.current = null;
-      }
-
       if (interactionMode === 'pan') {
+          // If the user starts moving their finger, it's a pan/scroll gesture.
+          // Clear the timeout that would switch to draw mode.
+          if (holdTimeoutRef.current) {
+              clearTimeout(holdTimeoutRef.current);
+              holdTimeoutRef.current = null;
+          }
           const scrollContainer = scrollContainerRef.current;
           const panStart = panStartRef.current;
           if (scrollContainer && panStart) {
