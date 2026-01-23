@@ -142,7 +142,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   }, [strokes, redrawCanvas]);
 
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
-    setIsDrawing(true);
     const { x, y } = getCoordinates(event);
     currentPathRef.current = [{ x, y }];
 
@@ -156,6 +155,8 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    
+    setIsDrawing(true);
   };
 
   const draw = (event: React.MouseEvent | React.TouchEvent) => {
@@ -324,7 +325,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     <div className="flex flex-col gap-2 items-center w-full h-full">
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
         <Button
-            variant={isPenActive ? 'secondary' : 'outline'}
+            variant={isPenActive ? 'default' : 'secondary'}
             size="icon"
             className="h-8 w-8"
             onClick={() => setIsPenActive(!isPenActive)}
