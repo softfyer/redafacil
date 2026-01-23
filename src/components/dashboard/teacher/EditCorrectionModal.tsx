@@ -75,6 +75,11 @@ export function EditCorrectionModal({
   const [gradeContent, setGradeContent] = useState<number | undefined>();
   const [gradeStructure, setGradeStructure] = useState<number | undefined>();
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  
+  // State to manage file URLs displayed in the UI
+  const [currentAudioUrl, setCurrentAudioUrl] = useState<string | undefined | null>(null);
+  const [currentCorrectedFileUrl, setCurrentCorrectedFileUrl] = useState<string | undefined | null>(null);
+
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +93,8 @@ export function EditCorrectionModal({
       setTextFeedback(essay.textFeedback || '');
       setGradeContent(essay.gradeContent);
       setGradeStructure(essay.gradeStructure);
+      setCurrentAudioUrl(essay.audioFeedbackUrl);
+      setCurrentCorrectedFileUrl(essay.correctedFileUrl);
     } else if (!isOpen) {
       // Reset state when modal is closed
       setTextFeedback('');
@@ -96,6 +103,8 @@ export function EditCorrectionModal({
       setAnnotatedImageBlob(null);
       setGradeContent(undefined);
       setGradeStructure(undefined);
+      setCurrentAudioUrl(null);
+      setCurrentCorrectedFileUrl(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -124,83 +133,60 @@ export function EditCorrectionModal({
 
   const handleUpdate = async () => {
     if (!essay?.id || !essay.studentId) {
-      toast({
-        title: 'Erro',
-        description: 'ID da redação ou do aluno não encontrado.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro', description: 'ID da redação ou do aluno não encontrado.', variant: 'destructive'});
       return;
     }
     if (!textFeedback.trim()) {
-      toast({
-        title: 'Campo Obrigatório',
-        description: 'O feedback de texto não pode estar vazio.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Campo Obrigatório', description: 'O feedback de texto não pode estar vazio.', variant: 'destructive' });
       return;
     }
      if (gradeContent === undefined || gradeStructure === undefined) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'As notas de conteúdo e estrutura devem ser preenchidas.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Campos obrigatórios', description: 'As notas de conteúdo e estrutura devem ser preenchidas.', variant: 'destructive'});
       return;
     }
     if (!user || !userData) {
-      toast({
-        title: 'Erro de Autenticação',
-        description: 'Não foi possível identificar o professor.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro de Autenticação', description: 'Não foi possível identificar o professor.', variant: 'destructive' });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      let audioFeedbackUrl = essay.audioFeedbackUrl;
-      let correctedFileUrl = essay.correctedFileUrl;
+      let finalAudioUrl = essay.audioFeedbackUrl;
+      let finalCorrectedFileUrl = essay.correctedFileUrl;
 
-      // Handle Audio Upload
-      if (audioBlob) {
+      // --- Handle Audio ---
+      if (audioBlob) { // Case 1: New audio recorded (takes precedence)
         setLoadingMessage('Enviando novo áudio...');
-        if (essay.audioFeedbackUrl) {
-          await deleteFileByUrl(essay.audioFeedbackUrl);
-        }
-        audioFeedbackUrl = await uploadFeedbackAudio(
-          audioBlob,
-          essay.studentId,
-          essay.id
-        );
+        if (essay.audioFeedbackUrl) await deleteFileByUrl(essay.audioFeedbackUrl);
+        finalAudioUrl = await uploadFeedbackAudio(audioBlob, essay.studentId, essay.id);
+      } else if (essay.audioFeedbackUrl && !currentAudioUrl) { // Case 2: Existing audio removed
+        setLoadingMessage('Removendo áudio...');
+        await deleteFileByUrl(essay.audioFeedbackUrl);
+        finalAudioUrl = '';
       }
 
-      // Handle File/Annotation Upload (prioritize annotation)
-      if (annotatedImageBlob) {
+      // --- Handle Corrected File ---
+      if (annotatedImageBlob) { // Case 1: New annotated image (takes precedence)
         setLoadingMessage('Enviando imagem anotada...');
-        if (essay.correctedFileUrl) {
-           await deleteFileByUrl(essay.correctedFileUrl);
-        }
-        correctedFileUrl = await uploadAnnotatedImage(annotatedImageBlob, essay.studentId, essay.id);
-      } else if (newCorrectedFile) {
+        if (essay.correctedFileUrl) await deleteFileByUrl(essay.correctedFileUrl);
+        finalCorrectedFileUrl = await uploadAnnotatedImage(annotatedImageBlob, essay.studentId, essay.id);
+      } else if (newCorrectedFile) { // Case 2: New file uploaded
         setLoadingMessage('Enviando novo arquivo...');
-        if (essay.correctedFileUrl) {
-          await deleteFileByUrl(essay.correctedFileUrl);
-        }
-        correctedFileUrl = await uploadCorrectedEssayFile(
-          newCorrectedFile,
-          essay.studentId,
-          essay.id
-        );
+        if (essay.correctedFileUrl) await deleteFileByUrl(essay.correctedFileUrl);
+        finalCorrectedFileUrl = await uploadCorrectedEssayFile(newCorrectedFile, essay.studentId, essay.id);
+      } else if (essay.correctedFileUrl && !currentCorrectedFileUrl) { // Case 3: Existing file removed
+        setLoadingMessage('Removendo arquivo corrigido...');
+        await deleteFileByUrl(essay.correctedFileUrl);
+        finalCorrectedFileUrl = '';
       }
 
       setLoadingMessage('Finalizando atualização...');
       
-      // Build a clean update object
       const updatedData: Partial<Essay> = {
         textFeedback,
-        audioFeedbackUrl: audioFeedbackUrl || '', // Ensure no undefined
-        correctedFileUrl: correctedFileUrl || '', // Ensure no undefined
+        audioFeedbackUrl: finalAudioUrl || '',
+        correctedFileUrl: finalCorrectedFileUrl || '',
         teacherId: user.uid,
         teacherName: userData.name,
         correctedAt: essay.correctedAt, 
@@ -212,61 +198,34 @@ export function EditCorrectionModal({
 
       await submitCorrection(essay.id, updatedData);
 
-      toast({
-        title: 'Correção Atualizada!',
-        description: 'As informações da correção foram salvas com sucesso.',
-      });
-
+      toast({ title: 'Correção Atualizada!', description: 'As informações da correção foram salvas com sucesso.' });
       onCorrectionUpdated();
       onClose();
+
     } catch (error: any) {
       console.error('Failed to update correction: ', error);
-      toast({
-        title: 'Falha na Atualização',
-        description:
-          error.message ||
-          'Ocorreu um erro ao atualizar. Por favor, tente novamente.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Falha na Atualização', description: error.message || 'Ocorreu um erro ao atualizar. Por favor, tente novamente.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleRemoveFile = async (fileType: 'audio' | 'correctedFile') => {
-      if (!essay || !essay.id) return;
-  
-      setIsLoading(true);
-      setLoadingMessage(`Removendo ${fileType === 'audio' ? 'áudio' : 'arquivo'}...`);
-  
-      try {
-          const updateData: Partial<Essay> = {};
-          let fileUrlToRemove: string | undefined;
-
-          if (fileType === 'audio' && essay.audioFeedbackUrl) {
-              fileUrlToRemove = essay.audioFeedbackUrl;
-              updateData.audioFeedbackUrl = ''; // Set field to empty
-          } else if (fileType === 'correctedFile' && essay.correctedFileUrl) {
-              fileUrlToRemove = essay.correctedFileUrl;
-              updateData.correctedFileUrl = ''; // Set field to empty
-          }
-  
-          if (fileUrlToRemove) {
-              // First, delete the file from storage
-              await deleteFileByUrl(fileUrlToRemove);
-              
-              // Then, update the document in Firestore to remove the URL
-              await submitCorrection(essay.id, updateData);
-
-              toast({ title: 'Arquivo Removido', description: 'O arquivo foi removido com sucesso.' });
-              onCorrectionUpdated(); // This will re-fetch and re-render
-          }
-      } catch (error: any) {
-          console.error(`Failed to remove ${fileType}: `, error);
-          toast({ title: 'Erro ao Remover', description: 'Não foi possível remover o arquivo.', variant: 'destructive' });
-      } finally {
-          setIsLoading(false);
-      }
+  const handleRemoveFile = (fileType: 'audio' | 'correctedFile') => {
+    if (fileType === 'audio') {
+        setCurrentAudioUrl(null);
+        toast({
+            title: 'Áudio marcado para remoção',
+            description: 'A remoção será concluída ao salvar as alterações.',
+            duration: 4000,
+        });
+    } else if (fileType === 'correctedFile') {
+        setCurrentCorrectedFileUrl(null);
+        toast({
+            title: 'Arquivo corrigido marcado para remoção',
+            description: 'A remoção será concluída ao salvar as alterações.',
+            duration: 4000,
+        });
+    }
   };
 
   return (
@@ -282,7 +241,7 @@ export function EditCorrectionModal({
                 <Label htmlFor="edit-corrected-file" className="font-bold text-base">
                     1. Redação Corrigida (Anexar ou Anotar)
                 </Label>
-                {essay?.correctedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
+                {currentCorrectedFileUrl && !newCorrectedFile && !annotatedImageBlob && (
                 <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
                     <Button
                         type="button"
@@ -334,9 +293,9 @@ export function EditCorrectionModal({
 
             <div className="space-y-2">
                 <Label className="font-bold text-base">3. Feedback por Áudio</Label>
-                {essay?.audioFeedbackUrl && !audioBlob && (
+                {currentAudioUrl && !audioBlob && (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                    <audio controls src={essay.audioFeedbackUrl} className="flex-grow"/>
+                    <audio controls src={currentAudioUrl} className="flex-grow"/>
                     <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('audio')} disabled={isLoading}>
                         <X className="h-4 w-4" />
                     </Button>
@@ -431,7 +390,7 @@ export function EditCorrectionModal({
     <FileViewerModal
         isOpen={isViewerOpen}
         onClose={() => setIsViewerOpen(false)}
-        fileUrl={essay?.correctedFileUrl}
+        fileUrl={currentCorrectedFileUrl}
         title={essay?.title || 'Arquivo Corrigido'}
     />
 
