@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AnnotationCanvas, type AnnotationCanvasActions } from './AnnotationCanvas';
@@ -34,7 +33,7 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, or
       <DialogContent className="w-full h-full max-h-[95vh] flex flex-col p-2 md:max-w-full lg:max-w-4xl sm:p-4">
         <DialogHeader className="flex-shrink-0 p-0 sm:p-2">
           <DialogTitle>Anotar na Redação</DialogTitle>
-          <DialogDescription className="hidden sm:block">
+          <DialogDescription className="hidden lg:block">
             Use as ferramentas para desenhar e aplicar zoom. Suas anotações são salvas localmente. Clique em Salvar Anotações para gerar a imagem final.
           </DialogDescription>
         </DialogHeader>
@@ -51,11 +50,6 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, or
 
         <DialogFooter className="flex-shrink-0 pt-2 flex-row justify-end gap-2">
           <Button onClick={handleSaveClick} size="sm">Salvar Anotações</Button>
-          <DialogClose asChild>
-            <Button type="button" variant="outline" size="sm">
-              Fechar
-            </Button>
-          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
