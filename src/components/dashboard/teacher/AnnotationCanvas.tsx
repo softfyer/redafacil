@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Redo2, Pen, Undo2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -172,7 +172,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
 
   const stopDrawing = () => {
     if (!isDrawing) return;
-    setIsDrawing(false);
     
     const newStroke: Stroke = {
         points: currentPathRef.current,
@@ -190,7 +189,16 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
 
     currentPathRef.current = [];
+    // We don't want to setIsDrawing(false) here when using touch,
+    // because stopDrawing is called on touchEnd, but we might still be drawing.
+    // Let's rely on the touch/mouse up events to set this.
   };
+  
+    const handleMouseUp = () => {
+        if (!isPenActive || !isDrawing) return;
+        stopDrawing();
+        setIsDrawing(false);
+    };
 
   const handleUndo = () => {
     if (strokes.length === 0) return;
@@ -232,10 +240,36 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     draw(event);
   };
 
-  const handleMouseUp = () => {
-    if (!isPenActive || !isDrawing) return;
-    stopDrawing();
+  // --- New scroll pad handlers ---
+  const handleScrollPadTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.preventDefault(); // Stop propagation to canvas
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+        panStartRef.current = {
+            scrollX: scrollContainer.scrollLeft,
+            scrollY: scrollContainer.scrollTop,
+            touchX: event.touches[0].clientX,
+            touchY: event.touches[0].clientY,
+        };
+    }
   };
+
+  const handleScrollPadTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const scrollContainer = scrollContainerRef.current;
+    const panStart = panStartRef.current;
+    if (scrollContainer && panStart) {
+        const dx = event.touches[0].clientX - panStart.touchX;
+        const dy = event.touches[0].clientY - panStart.touchY;
+        scrollContainer.scrollLeft = panStart.scrollX - dx;
+        scrollContainer.scrollTop = panStart.scrollY - dy;
+    }
+  };
+
+  const handleScrollPadTouchEnd = () => {
+    panStartRef.current = null;
+  };
+
 
   // --- TOUCH EVENT HANDLERS ---
   const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
@@ -245,6 +279,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         event.preventDefault();
         startDrawing(event);
       }
+      // Disable pinch-to-zoom when drawing
       return;
     }
 
@@ -302,11 +337,11 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLCanvasElement>) => {
-    // If pen is active, always stop drawing
     if (isPenActive) {
       if (isDrawing) {
         event.preventDefault();
         stopDrawing();
+        setIsDrawing(false);
       }
       return;
     }
@@ -375,7 +410,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         </Button>
       </div>
 
-      <div ref={scrollContainerRef} className="w-full flex-1 overflow-auto border bg-muted text-center p-4">
+      <div ref={scrollContainerRef} className="w-full flex-1 overflow-auto border bg-muted text-center p-4 relative">
             <canvas
                 ref={canvasRef}
                 onMouseDown={handleMouseDown}
@@ -394,6 +429,17 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
                     height: imageSize.height > 0 ? `${imageSize.height * zoomLevel}px` : 'auto',
                 }} 
             />
+            {isPenActive && (
+                <div
+                    onTouchStart={handleScrollPadTouchStart}
+                    onTouchMove={handleScrollPadTouchMove}
+                    onTouchEnd={handleScrollPadTouchEnd}
+                    className="absolute bottom-4 left-4 z-20 h-24 w-24 bg-black/30 rounded-full flex items-center justify-center text-white/70 cursor-grab active:cursor-grabbing touch-none select-none"
+                    title="Arraste para mover a imagem"
+                >
+                    <Move className="h-8 w-8" />
+                </div>
+            )}
       </div>
     </div>
   );
