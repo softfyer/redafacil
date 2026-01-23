@@ -189,15 +189,12 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
 
     currentPathRef.current = [];
-    // We don't want to setIsDrawing(false) here when using touch,
-    // because stopDrawing is called on touchEnd, but we might still be drawing.
-    // Let's rely on the touch/mouse up events to set this.
+    setIsDrawing(false);
   };
   
     const handleMouseUp = () => {
         if (!isPenActive || !isDrawing) return;
         stopDrawing();
-        setIsDrawing(false);
     };
 
   const handleUndo = () => {
@@ -244,7 +241,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   const handleScrollPadTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     event.preventDefault(); // Stop propagation to canvas
     const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
+    if (scrollContainer && event.touches.length === 1) {
         panStartRef.current = {
             scrollX: scrollContainer.scrollLeft,
             scrollY: scrollContainer.scrollTop,
@@ -258,7 +255,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     event.preventDefault();
     const scrollContainer = scrollContainerRef.current;
     const panStart = panStartRef.current;
-    if (scrollContainer && panStart) {
+    if (scrollContainer && panStart && event.touches.length === 1) {
         const dx = event.touches[0].clientX - panStart.touchX;
         const dy = event.touches[0].clientY - panStart.touchY;
         scrollContainer.scrollLeft = panStart.scrollX - dx;
@@ -341,7 +338,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
       if (isDrawing) {
         event.preventDefault();
         stopDrawing();
-        setIsDrawing(false);
       }
       return;
     }
@@ -355,7 +351,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
   };
 
-
   return (
     <div className="flex flex-col gap-2 items-center w-full h-full">
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
@@ -368,6 +363,22 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         >
             <Pen className="w-4 h-4" />
         </Button>
+        
+        {isPenActive && (
+            <>
+                <Separator orientation="vertical" className="h-5 mx-1" />
+                <div
+                    onTouchStart={handleScrollPadTouchStart}
+                    onTouchMove={handleScrollPadTouchMove}
+                    onTouchEnd={handleScrollPadTouchEnd}
+                    className="h-8 w-8 bg-muted rounded-md flex items-center justify-center text-muted-foreground cursor-grab active:cursor-grabbing touch-none select-none"
+                    title="Arraste para mover a imagem"
+                >
+                    <Move className="h-4 w-4" />
+                </div>
+            </>
+        )}
+
         <Separator orientation="vertical" className="h-5 mx-1" />
         
         <Label className="text-xs">Cor:</Label>
@@ -429,17 +440,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
                     height: imageSize.height > 0 ? `${imageSize.height * zoomLevel}px` : 'auto',
                 }} 
             />
-            {isPenActive && (
-                <div
-                    onTouchStart={handleScrollPadTouchStart}
-                    onTouchMove={handleScrollPadTouchMove}
-                    onTouchEnd={handleScrollPadTouchEnd}
-                    className="absolute bottom-4 left-4 z-20 h-24 w-24 bg-black/30 rounded-full flex items-center justify-center text-white/70 cursor-grab active:cursor-grabbing touch-none select-none"
-                    title="Arraste para mover a imagem"
-                >
-                    <Move className="h-8 w-8" />
-                </div>
-            )}
       </div>
     </div>
   );
