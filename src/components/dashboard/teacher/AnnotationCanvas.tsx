@@ -47,7 +47,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   // New touch interaction state
   const [interactionMode, setInteractionMode] = useState<'pan' | 'draw' | null>(null);
   const panStartRef = useRef<{ scrollX: number; scrollY: number; touchX: number; touchY: number } | null>(null);
-  const touchStartRef = useRef<{ event: React.TouchEvent<HTMLCanvasElement> } | null>(null);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
@@ -62,11 +61,13 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
 
     let clientX, clientY;
     if ('touches' in event) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
+        // Handle both touch and mouse events
+        const touch = (event as React.TouchEvent).touches[0] || (event as React.TouchEvent).changedTouches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
     } else {
-        clientX = event.clientX;
-        clientY = event.clientY;
+        clientX = (event as React.MouseEvent).clientX;
+        clientY = (event as React.MouseEvent).clientY;
     }
     
     const scaleX = canvas.width / rect.width;
@@ -236,25 +237,36 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     if (event.touches.length !== 1) return;
     event.preventDefault();
 
-    touchStartRef.current = { event };
+    // Default to pan mode on touch start
+    setInteractionMode('pan');
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+        panStartRef.current = { 
+            scrollX: scrollContainer.scrollLeft, 
+            scrollY: scrollContainer.scrollTop,
+            touchX: event.touches[0].clientX,
+            touchY: event.touches[0].clientY,
+        };
+    }
 
+    // Set a timeout to switch to draw mode if the user holds their touch
     holdTimeoutRef.current = setTimeout(() => {
-        const scrollContainer = scrollContainerRef.current;
-        if (scrollContainer) {
-            setInteractionMode('pan');
-            panStartRef.current = { 
-                scrollX: scrollContainer.scrollLeft, 
-                scrollY: scrollContainer.scrollTop,
-                touchX: event.touches[0].clientX,
-                touchY: event.touches[0].clientY,
-            };
-        }
-    }, 200); // 200ms hold gesture
+        setInteractionMode('draw');
+        // Start drawing from the initial touch point
+        startDrawing(event);
+    }, 100); // 100ms hold gesture
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
       if (event.touches.length !== 1) return;
       event.preventDefault();
+      
+      // If the user starts moving their finger, it's a pan/scroll gesture.
+      // Clear the timeout that would switch to draw mode.
+      if (holdTimeoutRef.current) {
+          clearTimeout(holdTimeoutRef.current);
+          holdTimeoutRef.current = null;
+      }
 
       if (interactionMode === 'pan') {
           const scrollContainer = scrollContainerRef.current;
@@ -265,32 +277,27 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
               scrollContainer.scrollLeft = panStart.scrollX - dx;
               scrollContainer.scrollTop = panStart.scrollY - dy;
           }
-      } else {
-          if (holdTimeoutRef.current) {
-              clearTimeout(holdTimeoutRef.current);
-              holdTimeoutRef.current = null;
-          }
-          if (interactionMode !== 'draw') {
-              setInteractionMode('draw');
-              if (touchStartRef.current) {
-                  startDrawing(touchStartRef.current.event);
-              }
-          }
+      } else if (interactionMode === 'draw') {
+          // If we are in draw mode (because of the hold), continue drawing.
           draw(event);
       }
   };
 
   const handleTouchEnd = () => {
+      // Always clear any existing timeout when the touch ends.
       if (holdTimeoutRef.current) {
           clearTimeout(holdTimeoutRef.current);
           holdTimeoutRef.current = null;
       }
+
+      // If we were in draw mode, finalize the stroke.
       if (interactionMode === 'draw') {
           stopDrawing();
       }
+
+      // Reset all interaction states for the next touch.
       setInteractionMode(null);
       panStartRef.current = null;
-      touchStartRef.current = null;
   };
 
   return (
