@@ -152,49 +152,50 @@ export function EditCorrectionModal({
     setIsLoading(true);
 
     try {
-      let finalAudioUrl = essay.audioFeedbackUrl;
-      let finalCorrectedFileUrl = essay.correctedFileUrl;
+        const updatedData: Partial<Essay> = {
+            textFeedback,
+            teacherId: user.uid,
+            teacherName: userData.name,
+            correctedAt: essay.correctedAt,
+            status: 'corrected',
+            gradeContent,
+            gradeStructure,
+            gradeFinal,
+        };
 
       // --- Handle Audio ---
       if (audioBlob) { // Case 1: New audio recorded (takes precedence)
         setLoadingMessage('Enviando novo áudio...');
-        if (essay.audioFeedbackUrl) await deleteFileByUrl(essay.audioFeedbackUrl);
-        finalAudioUrl = await uploadFeedbackAudio(audioBlob, essay.studentId, essay.id);
+        if (essay.audioFeedbackUrl) {
+          await deleteFileByUrl(essay.audioFeedbackUrl);
+        }
+        updatedData.audioFeedbackUrl = await uploadFeedbackAudio(audioBlob, essay.studentId, essay.id);
       } else if (essay.audioFeedbackUrl && !currentAudioUrl) { // Case 2: Existing audio removed
         setLoadingMessage('Removendo áudio...');
         await deleteFileByUrl(essay.audioFeedbackUrl);
-        finalAudioUrl = '';
+        updatedData.audioFeedbackUrl = null as any; // Set to null instead of ''
       }
 
       // --- Handle Corrected File ---
       if (annotatedImageBlob) { // Case 1: New annotated image (takes precedence)
         setLoadingMessage('Enviando imagem anotada...');
-        if (essay.correctedFileUrl) await deleteFileByUrl(essay.correctedFileUrl);
-        finalCorrectedFileUrl = await uploadAnnotatedImage(annotatedImageBlob, essay.studentId, essay.id);
+        if (essay.correctedFileUrl) {
+          await deleteFileByUrl(essay.correctedFileUrl);
+        }
+        updatedData.correctedFileUrl = await uploadAnnotatedImage(annotatedImageBlob, essay.studentId, essay.id);
       } else if (newCorrectedFile) { // Case 2: New file uploaded
         setLoadingMessage('Enviando novo arquivo...');
-        if (essay.correctedFileUrl) await deleteFileByUrl(essay.correctedFileUrl);
-        finalCorrectedFileUrl = await uploadCorrectedEssayFile(newCorrectedFile, essay.studentId, essay.id);
+        if (essay.correctedFileUrl) {
+          await deleteFileByUrl(essay.correctedFileUrl);
+        }
+        updatedData.correctedFileUrl = await uploadCorrectedEssayFile(newCorrectedFile, essay.studentId, essay.id);
       } else if (essay.correctedFileUrl && !currentCorrectedFileUrl) { // Case 3: Existing file removed
         setLoadingMessage('Removendo arquivo corrigido...');
         await deleteFileByUrl(essay.correctedFileUrl);
-        finalCorrectedFileUrl = '';
+        updatedData.correctedFileUrl = null as any; // Set to null instead of ''
       }
 
       setLoadingMessage('Finalizando atualização...');
-      
-      const updatedData: Partial<Essay> = {
-        textFeedback,
-        audioFeedbackUrl: finalAudioUrl || '',
-        correctedFileUrl: finalCorrectedFileUrl || '',
-        teacherId: user.uid,
-        teacherName: userData.name,
-        correctedAt: essay.correctedAt, 
-        status: 'corrected',
-        gradeContent,
-        gradeStructure,
-        gradeFinal
-      };
 
       await submitCorrection(essay.id, updatedData);
 
