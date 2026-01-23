@@ -234,12 +234,13 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
 
   // --- TOUCH EVENT HANDLERS ---
   const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    // If pen is active, always draw
     if (isPenActive) {
-        if (event.touches.length === 1) {
-            event.preventDefault();
-            startDrawing(event);
-        }
-        return;
+      if (event.touches.length === 1) {
+        event.preventDefault();
+        startDrawing(event);
+      }
+      return;
     }
 
     // Handle Pan and Pinch if pen is not active
@@ -264,12 +265,13 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    // If pen is active, always draw
     if (isPenActive) {
-        if (isDrawing && event.touches.length === 1) {
-            event.preventDefault();
-            draw(event);
-        }
-        return;
+      if (isDrawing && event.touches.length === 1) {
+        event.preventDefault();
+        draw(event);
+      }
+      return;
     }
     
     // Handle Pan and Pinch if pen is not active
@@ -295,12 +297,13 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    // If pen is active, always stop drawing
     if (isPenActive) {
-        if (isDrawing) {
-            event.preventDefault();
-            stopDrawing();
-        }
-        return;
+      if (isDrawing) {
+        event.preventDefault();
+        stopDrawing();
+      }
+      return;
     }
     
     // Reset pan/pinch state
@@ -312,11 +315,12 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
   };
 
+
   return (
     <div className="flex flex-col gap-2 items-center w-full h-full">
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
         <Button
-            variant={isPenActive ? 'secondary' : 'outline'}
+            variant={isPenActive ? 'outline' : 'secondary'}
             size="icon"
             className="h-8 w-8"
             onClick={() => setIsPenActive(!isPenActive)}
