@@ -142,7 +142,7 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
 
             {status === 'recorded' && audioUrl && (
                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                    <audio src={audioUrl} controls className="w-full flex-1" />
+                    <audio src={audioUrl} controls className="w-full" />
                     <Button onClick={resetRecording} variant="ghost" size="icon" disabled={disabled}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Apagar gravação</span>
