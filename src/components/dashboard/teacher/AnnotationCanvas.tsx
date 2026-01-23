@@ -29,17 +29,27 @@ interface AnnotationCanvasProps {
 const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCanvasProps>(
     ({ imageUrl, essayId, onSave, originalMimeType }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
-  // Use a boolean for pen activation
   const [isPenActive, setIsPenActive] = useState(false);
   const [brushColor, setBrushColor] = useState('#FF0000'); // Default to red
   const [brushSize, setBrushSize] = useState(3);
+
+  // Canvas and image state
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentPathRef = useRef<{ x: number; y: number }[]>([]);
-  // Set initial zoom to 0.5 (50%)
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const [imageSize, setImageSize] = useState({width: 0, height: 0});
+
+  // New touch interaction state
+  const [interactionMode, setInteractionMode] = useState<'pan' | 'draw' | null>(null);
+  const panStartRef = useRef<{ scrollX: number; scrollY: number; touchX: number; touchY: number } | null>(null);
+  const touchStartRef = useRef<{ event: React.TouchEvent<HTMLCanvasElement> } | null>(null);
+  const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
   const storageKey = `annotations_${essayId}`;
@@ -71,7 +81,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     };
   };
 
-  // Simplified redrawCanvas
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -80,7 +89,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height);
 
-    // No need to check for eraser mode
     ctx.globalCompositeOperation = 'source-over';
     strokes.forEach(stroke => {
       ctx.beginPath();
@@ -102,9 +110,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
+    
     const image = new Image();
     image.crossOrigin = "anonymous";
     
@@ -119,12 +125,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
       
       try {
         const savedStrokes = localStorage.getItem(storageKey);
-        if (savedStrokes) {
-          const parsedStrokes = JSON.parse(savedStrokes);
-          setStrokes(parsedStrokes);
-        } else {
-            setStrokes([]);
-        }
+        setStrokes(savedStrokes ? JSON.parse(savedStrokes) : []);
       } catch (error) {
         console.error("Failed to parse strokes from localStorage", error);
         setStrokes([]);
@@ -139,7 +140,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     redrawCanvas();
   }, [strokes, redrawCanvas]);
 
-  // Simplified startDrawing
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
     setIsDrawing(true);
     const { x, y } = getCoordinates(event);
@@ -153,7 +153,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = brushColor;
     ctx.lineWidth = brushSize;
-    
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   };
@@ -169,7 +168,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.stroke();
   };
 
-  // Simplified stopDrawing
   const stopDrawing = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
@@ -216,9 +214,84 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   useImperativeHandle(ref, () => ({
     handleSave,
   }));
+  
+  // --- MOUSE EVENT HANDLERS ---
+  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isPenActive) return;
+    startDrawing(event);
+  };
 
-  const isDrawingMode = isPenActive;
-  const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isPenActive || !isDrawing) return;
+    draw(event);
+  };
+
+  const handleMouseUp = () => {
+    if (!isPenActive || !isDrawing) return;
+    stopDrawing();
+  };
+
+  // --- TOUCH EVENT HANDLERS ---
+  const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    if (event.touches.length !== 1) return;
+    event.preventDefault();
+
+    touchStartRef.current = { event };
+
+    holdTimeoutRef.current = setTimeout(() => {
+        const scrollContainer = scrollContainerRef.current;
+        if (scrollContainer) {
+            setInteractionMode('pan');
+            panStartRef.current = { 
+                scrollX: scrollContainer.scrollLeft, 
+                scrollY: scrollContainer.scrollTop,
+                touchX: event.touches[0].clientX,
+                touchY: event.touches[0].clientY,
+            };
+        }
+    }, 200); // 200ms hold gesture
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
+      if (event.touches.length !== 1) return;
+      event.preventDefault();
+
+      if (interactionMode === 'pan') {
+          const scrollContainer = scrollContainerRef.current;
+          const panStart = panStartRef.current;
+          if (scrollContainer && panStart) {
+              const dx = event.touches[0].clientX - panStart.touchX;
+              const dy = event.touches[0].clientY - panStart.touchY;
+              scrollContainer.scrollLeft = panStart.scrollX - dx;
+              scrollContainer.scrollTop = panStart.scrollY - dy;
+          }
+      } else {
+          if (holdTimeoutRef.current) {
+              clearTimeout(holdTimeoutRef.current);
+              holdTimeoutRef.current = null;
+          }
+          if (interactionMode !== 'draw') {
+              setInteractionMode('draw');
+              if (touchStartRef.current) {
+                  startDrawing(touchStartRef.current.event);
+              }
+          }
+          draw(event);
+      }
+  };
+
+  const handleTouchEnd = () => {
+      if (holdTimeoutRef.current) {
+          clearTimeout(holdTimeoutRef.current);
+          holdTimeoutRef.current = null;
+      }
+      if (interactionMode === 'draw') {
+          stopDrawing();
+      }
+      setInteractionMode(null);
+      panStartRef.current = null;
+      touchStartRef.current = null;
+  };
 
   return (
     <div className="flex flex-col gap-2 items-center w-full h-full">
@@ -228,40 +301,38 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             size="icon"
             className="h-8 w-8"
             onClick={() => setIsPenActive(!isPenActive)}
-            title="Ativar/Desativar modo de anotação"
+            title="Ativar/Desativar modo de anotação (para mouse)"
         >
             <Pen className="w-4 h-4" />
         </Button>
         <Separator orientation="vertical" className="h-5 mx-1" />
-        {isPenActive && (
-            <>
-            <Label className="text-xs">Cor:</Label>
-            <div className="flex gap-1">
-                {colors.map(color => (
-                    <button 
-                        key={color}
-                        onClick={() => setBrushColor(color)}
-                        className={`w-5 h-5 rounded-full border-2 ${brushColor === color ? 'border-ring' : 'border-transparent'}`}
-                        style={{ backgroundColor: color }}
-                    />
-                ))}
-            </div>
-            <Separator orientation="vertical" className="h-5 mx-1"/>
-            <div className="flex items-center gap-1">
-                <Label htmlFor="brush-size" className="text-xs">Tamanho:</Label>
-                <Slider
-                    id="brush-size"
-                    min={1}
-                    max={20}
-                    step={1}
-                    value={[brushSize]}
-                    onValueChange={(value) => setBrushSize(value[0])}
-                    className="w-20"
+        
+        <Label className="text-xs">Cor:</Label>
+        <div className="flex gap-1">
+            {colors.map(color => (
+                <button 
+                    key={color}
+                    onClick={() => setBrushColor(color)}
+                    className={`w-5 h-5 rounded-full border-2 ${brushColor === color ? 'border-ring' : 'border-transparent'}`}
+                    style={{ backgroundColor: color }}
                 />
-            </div>
-            <Separator orientation="vertical" className="h-5 mx-1"/>
-            </>
-        )}
+            ))}
+        </div>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        <div className="flex items-center gap-1">
+            <Label htmlFor="brush-size" className="text-xs">Tamanho:</Label>
+            <Slider
+                id="brush-size"
+                min={1}
+                max={20}
+                step={1}
+                value={[brushSize]}
+                onValueChange={(value) => setBrushSize(value[0])}
+                className="w-20"
+            />
+        </div>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        
         <div className="flex items-center gap-1">
             <Label className="text-xs">Zoom:</Label>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
@@ -276,27 +347,25 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         </Button>
       </div>
 
-      <div className="w-full flex-1 overflow-auto border bg-muted">
-        <div className="flex justify-center items-center min-h-full p-4">
+      <div ref={scrollContainerRef} className="w-full flex-1 overflow-auto border bg-muted text-center p-4">
             <canvas
                 ref={canvasRef}
-                onMouseDown={isDrawingMode ? startDrawing : undefined}
-                onMouseMove={isDrawingMode ? draw : undefined}
-                onMouseUp={isDrawingMode ? stopDrawing : undefined}
-                onMouseLeave={isDrawingMode ? stopDrawing : undefined}
-                onTouchStart={isDrawingMode ? startDrawing : undefined}
-                onTouchMove={isDrawingMode ? draw : undefined}
-                onTouchEnd={isDrawingMode ? stopDrawing : undefined}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 className={cn(
-                    isDrawingMode ? "cursor-crosshair" : "cursor-grab",
+                    'touch-none', // We handle all touch actions manually
+                    isPenActive ? "cursor-crosshair" : "cursor-grab",
                 )}
-                style={{ 
-                    touchAction: isDrawingMode && isTouchDevice ? 'none' : 'auto',
+                style={{
                     width: imageSize.width > 0 ? `${imageSize.width * zoomLevel}px` : 'auto',
                     height: imageSize.height > 0 ? `${imageSize.height * zoomLevel}px` : 'auto',
                 }} 
             />
-        </div>
       </div>
     </div>
   );
