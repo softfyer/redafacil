@@ -240,7 +240,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             <div className="space-y-4">
                 <div>
                     <h3 className="font-bold text-base">1. Redação Corrigida</h3>
-                    <p className="text-sm text-muted-foreground">Corrija a redação na plataforma ou envie um arquivo corrigido.</p>
+                    <p className="text-sm text-muted-foreground">Corrija a redação ou envie um arquivo corrigido</p>
                 </div>
                 
                 {isImageUrl(essay.fileUrl) && (
@@ -286,7 +286,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             
             <div className="space-y-2">
               <Label className="font-bold text-base">3. Feedback por Áudio (Opcional)</Label>
-              <AudioRecorder onRecordingComplete={setAudioBlob} disabled={isLoading}/>
+              <AudioRecorder value={audioBlob} onChange={setAudioBlob} disabled={isLoading}/>
             </div>
             
             <div className="space-y-2">
@@ -366,6 +366,8 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             essayId={essay.id}
             onSave={handleAnnotationSave}
             originalMimeType={originalMimeType}
+            audioBlob={audioBlob}
+            onAudioChange={setAudioBlob}
         />
       )}
     </>

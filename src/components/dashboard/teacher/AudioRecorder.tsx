@@ -2,19 +2,20 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Square, Play, Trash2, Clock } from 'lucide-react';
+import { Mic, Square, Trash2, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type RecordingStatus = 'inactive' | 'recording' | 'recorded' | 'denied';
 
 type AudioRecorderProps = {
-  onRecordingComplete: (audioBlob: Blob | null) => void;
-  disabled?: boolean; // Add disabled prop
+  value: Blob | null;
+  onChange: (audioBlob: Blob | null) => void;
+  disabled?: boolean;
 };
 
 const MAX_RECORDING_TIME_MS = 300000; // 5 minutes
 
-export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderProps) {
+export function AudioRecorder({ value, onChange, disabled }: AudioRecorderProps) {
   const [status, setStatus] = useState<RecordingStatus>('inactive');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -22,6 +23,23 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // This effect synchronizes the component's state with the `value` prop
+    if (value) {
+      const url = URL.createObjectURL(value);
+      setAudioUrl(url);
+      setStatus('recorded');
+      // No need to clear timer here, as it should already be cleared on stop
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setAudioUrl(null);
+      setStatus('inactive');
+      setElapsedTime(0);
+    }
+  }, [value]);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -42,7 +60,7 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setStatus('inactive');
+      if(status !== 'recorded') setStatus('inactive'); // Don't change status if already recorded
       return stream;
     } catch (err) {
       setStatus('denied');
@@ -53,6 +71,11 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
   const startRecording = async () => {
     const stream = await getMicrophonePermission();
     if (!stream) return;
+    
+    // If there is a previous recording, reset it before starting a new one
+    if (value) {
+        onChange(null);
+    }
 
     setStatus('recording');
     const mediaRecorder = new MediaRecorder(stream);
@@ -81,11 +104,9 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
-      onRecordingComplete(audioBlob);
-      setStatus('recorded');
-       // Stop all media tracks to turn off the recording indicator
+      onChange(audioBlob); // Pass the new blob up to the parent
+      
+      // Stop all media tracks to turn off the recording indicator
       stream.getTracks().forEach(track => track.stop());
     };
 
@@ -99,14 +120,7 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
   };
   
   const resetRecording = () => {
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioUrl(null);
-    setStatus('inactive');
-    setElapsedTime(0);
-    audioChunksRef.current = [];
-    mediaRecorderRef.current = null;
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    onRecordingComplete(null);
+    onChange(null);
   };
   
   const formatTime = (seconds: number) => {
@@ -142,7 +156,7 @@ export function AudioRecorder({ onRecordingComplete, disabled }: AudioRecorderPr
 
             {status === 'recorded' && audioUrl && (
                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                    <audio src={audioUrl} controls className="w-full" />
+                    <audio src={audioUrl} controls className="flex-1 w-full" />
                     <Button onClick={resetRecording} variant="ghost" size="icon" disabled={disabled}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Apagar gravação</span>

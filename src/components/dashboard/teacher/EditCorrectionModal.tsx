@@ -95,6 +95,17 @@ export function EditCorrectionModal({
       setGradeStructure(essay.gradeStructure);
       setCurrentAudioUrl(essay.audioFeedbackUrl);
       setCurrentCorrectedFileUrl(essay.correctedFileUrl);
+      
+      // Fetch existing audio blob if URL exists
+      if (essay.audioFeedbackUrl) {
+          fetch(essay.audioFeedbackUrl)
+              .then(res => res.blob())
+              .then(blob => setAudioBlob(blob))
+              .catch(err => console.error("Could not fetch existing audio blob:", err));
+      } else {
+          setAudioBlob(null);
+      }
+
     } else if (!isOpen) {
       // Reset state when modal is closed
       setTextFeedback('');
@@ -164,16 +175,18 @@ export function EditCorrectionModal({
         };
 
       // --- Handle Audio ---
-      if (audioBlob) { // Case 1: New audio recorded (takes precedence)
+      if (audioBlob && (!essay.audioFeedbackUrl || audioBlob.size !== (await fetch(essay.audioFeedbackUrl).then(res => res.blob())).size)) {
+        // Case 1: New audio recorded or changed
         setLoadingMessage('Enviando novo áudio...');
         if (essay.audioFeedbackUrl) {
           await deleteFileByUrl(essay.audioFeedbackUrl);
         }
         updatedData.audioFeedbackUrl = await uploadFeedbackAudio(audioBlob, essay.studentId, essay.id);
-      } else if (essay.audioFeedbackUrl && !currentAudioUrl) { // Case 2: Existing audio removed
+      } else if (essay.audioFeedbackUrl && !audioBlob) {
+        // Case 2: Existing audio removed
         setLoadingMessage('Removendo áudio...');
         await deleteFileByUrl(essay.audioFeedbackUrl);
-        updatedData.audioFeedbackUrl = null as any; // Set to null instead of ''
+        updatedData.audioFeedbackUrl = null as any;
       }
 
       // --- Handle Corrected File ---
@@ -214,6 +227,7 @@ export function EditCorrectionModal({
   const handleRemoveFile = (fileType: 'audio' | 'correctedFile') => {
     if (fileType === 'audio') {
         setCurrentAudioUrl(null);
+        setAudioBlob(null);
         toast({
             title: 'Áudio marcado para remoção',
             description: 'A remoção será concluída ao salvar as alterações.',
@@ -294,20 +308,14 @@ export function EditCorrectionModal({
 
             <div className="space-y-2">
                 <Label className="font-bold text-base">3. Feedback por Áudio</Label>
-                {currentAudioUrl && !audioBlob && (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                    <audio controls src={currentAudioUrl} className="flex-grow"/>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveFile('audio')} disabled={isLoading}>
-                        <X className="h-4 w-4" />
-                    </Button>
-                </div>
-                )}
+                
                 <AudioRecorder
-                onRecordingComplete={setAudioBlob}
-                disabled={isLoading}
+                    value={audioBlob}
+                    onChange={setAudioBlob}
+                    disabled={isLoading}
                 />
                 <p className="text-xs text-muted-foreground">
-                    Grave um novo áudio para substituir o existente ou remova o atual.
+                    Grave um novo áudio para substituir o existente.
                 </p>
             </div>
 
@@ -403,6 +411,8 @@ export function EditCorrectionModal({
             essayId={essay.id}
             onSave={handleAnnotationSave}
             originalMimeType={originalMimeType}
+            audioBlob={audioBlob}
+            onAudioChange={setAudioBlob}
         />
     )}
     </>
