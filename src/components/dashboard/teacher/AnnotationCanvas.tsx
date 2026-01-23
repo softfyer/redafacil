@@ -38,6 +38,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentPathRef = useRef<{ x: number; y: number }[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [imageSize, setImageSize] = useState({width: 0, height: 0});
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
   const storageKey = `annotations_${essayId}`;
@@ -116,6 +117,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
       originalImageRef.current = image;
       canvas.width = image.naturalWidth;
       canvas.height = image.naturalHeight;
+      setImageSize({width: image.naturalWidth, height: image.naturalHeight});
       
       try {
         const savedStrokes = localStorage.getItem(storageKey);
@@ -312,7 +314,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
       </div>
 
       <div className="w-full flex-1 overflow-auto border bg-muted">
-        <div className="flex justify-center items-start min-h-full">
+        <div className="flex justify-center items-start min-h-full p-4">
             <canvas
                 ref={canvasRef}
                 onMouseDown={isDrawingMode ? startDrawing : undefined}
@@ -323,13 +325,12 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
                 onTouchMove={isDrawingMode ? draw : undefined}
                 onTouchEnd={isDrawingMode ? stopDrawing : undefined}
                 className={cn(
-                    "origin-top",
                     isDrawingMode ? "cursor-crosshair" : "cursor-grab",
                 )}
                 style={{ 
                     touchAction: isDrawingMode && isTouchDevice ? 'none' : 'auto',
-                    transform: `scale(${zoomLevel})`,
-                    transformOrigin: 'top center',
+                    width: imageSize.width > 0 ? `${imageSize.width * zoomLevel}px` : 'auto',
+                    height: imageSize.height > 0 ? `${imageSize.height * zoomLevel}px` : 'auto',
                 }} 
             />
         </div>
