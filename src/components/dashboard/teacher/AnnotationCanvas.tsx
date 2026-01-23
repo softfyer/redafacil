@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -209,6 +209,16 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         console.error("Failed to save strokes to localStorage", error);
     }
   }
+  
+  const handleClearAll = () => {
+    if (strokes.length === 0) return;
+    setStrokes([]);
+    try {
+        localStorage.removeItem(storageKey);
+    } catch (error) {
+        console.error("Failed to clear strokes from localStorage", error);
+    }
+  }
 
   const handleSave = () => {
     redrawCanvas();
@@ -411,13 +421,17 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <Label className="text-xs">Zoom:</Label>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(1)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(0.5)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
             <span className="text-xs font-mono w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
         </div>
         <Separator orientation="vertical" className="h-5 mx-1"/>
         <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleUndo} disabled={strokes.length === 0}>
           <Undo2 className="mr-1 h-4 w-4" />
           <span className="text-xs">Desfazer</span>
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleClearAll} disabled={strokes.length === 0}>
+          <Trash2 className="mr-1 h-4 w-4" />
+          <span className="text-xs">Limpar Tudo</span>
         </Button>
       </div>
 

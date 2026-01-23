@@ -49,7 +49,7 @@ export function AnnotationModal({ isOpen, onClose, imageUrl, essayId, onSave, or
         </div>
 
         <DialogFooter className="flex-shrink-0 pt-2 flex-row justify-end gap-2">
-          <Button onClick={handleSaveClick} size="sm">Salvar Anotações</Button>
+          <Button onClick={handleSaveClick} className="h-8 px-2 text-xs md:h-9 md:px-3 md:text-sm">Salvar Anotações</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
