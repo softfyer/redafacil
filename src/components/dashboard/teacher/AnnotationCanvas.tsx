@@ -3,10 +3,11 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move, Trash2, Mic, Square } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 // Stroke interface without mode
 interface Stroke {
@@ -24,12 +25,15 @@ interface AnnotationCanvasProps {
   essayId: string;
   onSave: (blob: Blob) => void;
   originalMimeType: 'image/jpeg' | 'image/png';
+  audioBlob: Blob | null;
+  onAudioChange: (blob: Blob | null) => void;
 }
 
 const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCanvasProps>(
-    ({ imageUrl, essayId, onSave, originalMimeType }, ref) => {
+    ({ imageUrl, essayId, onSave, originalMimeType, audioBlob, onAudioChange }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -48,6 +52,11 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   const panStartRef = useRef<{ scrollX: number; scrollY: number; touchX: number; touchY: number } | null>(null);
   const pinchStartDistanceRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(1);
+  
+  // Audio state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
@@ -192,8 +201,9 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     setIsDrawing(false);
   };
   
-    const handleMouseUp = () => {
+    const handleMouseUp = (event: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isPenActive || !isDrawing) return;
+        event.stopPropagation();
         stopDrawing();
     };
 
@@ -235,15 +245,74 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   useImperativeHandle(ref, () => ({
     handleSave,
   }));
+
+  // --- AUDIO RECORDING LOGIC ---
+  const getMicrophonePermission = async () => {
+    if (!('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices)) {
+      toast({ title: "Erro", description: "API de mídia não suportada neste navegador.", variant: "destructive"});
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      return stream;
+    } catch (err) {
+      toast({ title: "Permissão Negada", description: "Acesse as configurações do seu navegador para permitir o uso do microfone.", variant: "destructive"});
+    }
+  };
+
+  const startRecording = async () => {
+    const stream = await getMicrophonePermission();
+    if (!stream) return;
+    
+    if (audioBlob) {
+        onAudioChange(null);
+    }
+
+    setIsRecording(true);
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    audioChunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const newAudioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      onAudioChange(newAudioBlob);
+      stream.getTracks().forEach(track => track.stop());
+    };
+
+    mediaRecorder.start();
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+      if (isRecording) {
+          stopRecording();
+      } else {
+          startRecording();
+      }
+  };
   
   // --- MOUSE EVENT HANDLERS ---
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isPenActive) return;
+    event.stopPropagation();
     startDrawing(event);
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isPenActive || !isDrawing) return;
+    event.stopPropagation();
     draw(event);
   };
 
@@ -432,6 +501,11 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleClearAll} disabled={strokes.length === 0}>
           <Trash2 className="mr-1 h-4 w-4" />
           <span className="text-xs">Limpar Tudo</span>
+        </Button>
+        <Separator orientation="vertical" className="h-5 mx-1"/>
+        <Button variant={isRecording ? "destructive" : "outline"} size="icon" className="h-8 w-8" onClick={toggleRecording}>
+          {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          <span className="sr-only">{isRecording ? 'Parar gravação' : 'Iniciar gravação'}</span>
         </Button>
       </div>
 

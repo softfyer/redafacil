@@ -11,8 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AnnotationCanvas, type AnnotationCanvasActions } from './AnnotationCanvas';
-import { AudioRecorder } from './AudioRecorder';
-import { Label } from '@/components/ui/label';
 
 interface AnnotationModalProps {
   isOpen: boolean;
@@ -58,12 +56,9 @@ export function AnnotationModal({
             essayId={essayId} 
             onSave={onSave} 
             originalMimeType={originalMimeType} 
+            audioBlob={audioBlob}
+            onAudioChange={onAudioChange}
           />
-        </div>
-
-        <div className="flex-shrink-0 px-4 pb-4 sm:px-2 sm:pb-2">
-            <Label className="text-sm font-medium text-muted-foreground">Feedback por Áudio (Opcional)</Label>
-            <AudioRecorder value={audioBlob} onChange={onAudioChange} />
         </div>
 
         <DialogFooter className="flex-shrink-0 pt-2 flex-row justify-end gap-2 px-4 pb-4 sm:px-2 sm:pb-2">

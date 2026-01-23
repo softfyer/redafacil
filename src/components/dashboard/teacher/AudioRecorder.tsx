@@ -155,9 +155,9 @@ export function AudioRecorder({ value, onChange, disabled }: AudioRecorderProps)
             {status === 'denied' && <p className="text-destructive text-sm">Acesso ao microfone negado.</p>}
 
             {status === 'recorded' && audioUrl && (
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                    <audio src={audioUrl} controls className="flex-1 w-full" />
-                    <Button onClick={resetRecording} variant="ghost" size="icon" disabled={disabled}>
+                <div className="flex w-full items-center gap-2">
+                    <audio src={audioUrl} controls className="w-full flex-1" />
+                    <Button onClick={resetRecording} variant="ghost" size="icon" className="flex-shrink-0" disabled={disabled}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Apagar gravação</span>
                     </Button>
