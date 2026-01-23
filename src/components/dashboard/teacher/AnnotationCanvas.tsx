@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Redo2, Pen, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Undo2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -191,12 +191,16 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     currentPathRef.current = [];
   };
 
-  const handleClearAnnotations = () => {
-    setStrokes([]);
+  const handleUndo = () => {
+    if (strokes.length === 0) return;
+
+    const newStrokes = strokes.slice(0, -1);
+    setStrokes(newStrokes);
+
     try {
-        localStorage.removeItem(storageKey);
+        localStorage.setItem(storageKey, JSON.stringify(newStrokes));
     } catch (error) {
-        console.error("Failed to remove strokes from localStorage", error);
+        console.error("Failed to save strokes to localStorage", error);
     }
   }
 
@@ -320,7 +324,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     <div className="flex flex-col gap-2 items-center w-full h-full">
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
         <Button
-            variant={isPenActive ? 'outline' : 'secondary'}
+            variant={isPenActive ? 'secondary' : 'outline'}
             size="icon"
             className="h-8 w-8"
             onClick={() => setIsPenActive(!isPenActive)}
@@ -364,9 +368,9 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <span className="text-xs font-mono w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
         </div>
         <Separator orientation="vertical" className="h-5 mx-1"/>
-        <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleClearAnnotations}>
-          <Trash2 className="mr-1 h-4 w-4" />
-          <span className="text-xs">Limpar anotações</span>
+        <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleUndo} disabled={strokes.length === 0}>
+          <Undo2 className="mr-1 h-4 w-4" />
+          <span className="text-xs">Desfazer</span>
         </Button>
       </div>
 
