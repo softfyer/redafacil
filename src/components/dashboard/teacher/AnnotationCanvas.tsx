@@ -44,10 +44,12 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const [imageSize, setImageSize] = useState({width: 0, height: 0});
 
-  // New touch interaction state
-  const [interactionMode, setInteractionMode] = useState<'pan' | 'draw' | null>(null);
+  // Touch interaction state
+  const [interactionMode, setInteractionMode] = useState<'pan' | 'draw' | 'pinch' | null>(null);
   const panStartRef = useRef<{ scrollX: number; scrollY: number; touchX: number; touchY: number } | null>(null);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(1);
 
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
@@ -234,6 +236,22 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
 
   // --- TOUCH EVENT HANDLERS ---
   const handleTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    // If it's a two-finger gesture, initialize for pinch-to-zoom
+    if (event.touches.length === 2) {
+        event.preventDefault();
+        if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+            holdTimeoutRef.current = null;
+        }
+        setInteractionMode('pinch');
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        pinchStartDistanceRef.current = Math.sqrt(dx * dx + dy * dy);
+        pinchStartZoomRef.current = zoomLevel; // Store zoom at pinch start
+        return;
+    }
+    
+    // Existing one-finger logic
     if (event.touches.length !== 1) return;
     event.preventDefault();
 
@@ -258,9 +276,26 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   };
 
   const handleTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
-      if (event.touches.length !== 1) return;
       event.preventDefault();
       
+      // Handle pinch-to-zoom for two fingers
+      if (event.touches.length === 2 && interactionMode === 'pinch' && pinchStartDistanceRef.current !== null) {
+          const dx = event.touches[0].clientX - event.touches[1].clientX;
+          const dy = event.touches[0].clientY - event.touches[1].clientY;
+          const newDistance = Math.sqrt(dx * dx + dy * dy);
+          const scale = newDistance / pinchStartDistanceRef.current;
+          
+          const newZoom = pinchStartZoomRef.current * scale;
+          // Clamp zoom level between 20% and 300%
+          setZoomLevel(Math.max(0.2, Math.min(3, newZoom)));
+          return;
+      }
+      
+      // Prevent one-finger logic from running during a two-finger gesture
+      if (event.touches.length > 1) {
+          return;
+      }
+    
       if (interactionMode === 'pan') {
           // If the user starts moving their finger, it's a pan/scroll gesture.
           // Clear the timeout that would switch to draw mode.
@@ -282,7 +317,12 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
       }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (event: React.TouchEvent<HTMLCanvasElement>) => {
+      // If we were pinching, just reset the ref when fingers are lifted
+      if (pinchStartDistanceRef.current && event.touches.length < 2) {
+          pinchStartDistanceRef.current = null;
+      }
+
       // Always clear any existing timeout when the touch ends.
       if (holdTimeoutRef.current) {
           clearTimeout(holdTimeoutRef.current);
