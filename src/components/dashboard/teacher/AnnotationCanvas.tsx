@@ -3,16 +3,16 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Eraser, ZoomIn, ZoomOut, Redo2, Pen, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Trash2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
+// Stroke interface without mode
 interface Stroke {
   points: { x: number; y: number }[];
   color: string;
   size: number;
-  mode: 'pen' | 'eraser';
 }
 
 export interface AnnotationCanvasActions {
@@ -30,14 +30,15 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ({ imageUrl, essayId, onSave, originalMimeType }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [activeTool, setActiveTool] = useState<'pen' | 'eraser' | null>(null);
+  // Use a boolean for pen activation
+  const [isPenActive, setIsPenActive] = useState(false);
   const [brushColor, setBrushColor] = useState('#FF0000'); // Default to red
   const [brushSize, setBrushSize] = useState(3);
-  const [eraserSize, setEraserSize] = useState(20);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentPathRef = useRef<{ x: number; y: number }[]>([]);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  // Set initial zoom to 0.5 (50%)
+  const [zoomLevel, setZoomLevel] = useState(0.5);
   const [imageSize, setImageSize] = useState({width: 0, height: 0});
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
@@ -70,6 +71,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     };
   };
 
+  // Simplified redrawCanvas
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -78,12 +80,9 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImageRef.current, 0, 0, canvas.width, canvas.height);
 
+    // No need to check for eraser mode
+    ctx.globalCompositeOperation = 'source-over';
     strokes.forEach(stroke => {
-        if (stroke.mode === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-        } else {
-            ctx.globalCompositeOperation = 'source-over';
-        }
       ctx.beginPath();
       ctx.strokeStyle = stroke.color;
       ctx.lineWidth = stroke.size;
@@ -98,7 +97,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         ctx.stroke();
       }
     });
-    ctx.globalCompositeOperation = 'source-over';
   }, [strokes]);
 
   useEffect(() => {
@@ -141,6 +139,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     redrawCanvas();
   }, [strokes, redrawCanvas]);
 
+  // Simplified startDrawing
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
     setIsDrawing(true);
     const { x, y } = getCoordinates(event);
@@ -150,16 +149,10 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     if (!ctx) return;
     ctx.beginPath();
     ctx.moveTo(x, y);
-
-    if (activeTool === 'eraser') {
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.strokeStyle = 'rgba(0,0,0,1)';
-        ctx.lineWidth = eraserSize;
-    } else {
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.strokeStyle = brushColor;
-        ctx.lineWidth = brushSize;
-    }
+    
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = brushColor;
+    ctx.lineWidth = brushSize;
     
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -176,6 +169,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     ctx.stroke();
   };
 
+  // Simplified stopDrawing
   const stopDrawing = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
@@ -183,8 +177,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     const newStroke: Stroke = {
         points: currentPathRef.current,
         color: brushColor,
-        size: activeTool === 'pen' ? brushSize : eraserSize,
-        mode: activeTool as 'pen' | 'eraser',
+        size: brushSize,
     };
     
     const updatedStrokes = [...strokes, newStroke];
@@ -197,10 +190,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
 
     currentPathRef.current = [];
-    if(canvasRef.current) {
-        const ctx = canvasRef.current.getContext('2d');
-        if (ctx) ctx.globalCompositeOperation = 'source-over';
-    }
   };
 
   const handleClearAnnotations = () => {
@@ -228,32 +217,23 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     handleSave,
   }));
 
-  const isDrawingMode = activeTool !== null;
+  const isDrawingMode = isPenActive;
   const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
 
   return (
     <div className="flex flex-col gap-2 items-center w-full h-full">
       <div className="flex flex-wrap gap-x-2 gap-y-1 items-center p-1 border rounded-md bg-card">
         <Button
-            variant={activeTool === 'pen' ? 'secondary' : 'outline'}
+            variant={isPenActive ? 'secondary' : 'outline'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setActiveTool(activeTool === 'pen' ? null : 'pen')}
+            onClick={() => setIsPenActive(!isPenActive)}
             title="Ativar/Desativar modo de anotação"
         >
             <Pen className="w-4 h-4" />
         </Button>
-         <Button
-            variant={activeTool === 'eraser' ? 'secondary' : 'outline'}
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setActiveTool(activeTool === 'eraser' ? null : 'eraser')}
-            title="Borracha"
-        >
-            <Eraser className="w-4 h-4" />
-        </Button>
         <Separator orientation="vertical" className="h-5 mx-1" />
-        {activeTool === 'pen' && (
+        {isPenActive && (
             <>
             <Label className="text-xs">Cor:</Label>
             <div className="flex gap-1">
@@ -282,23 +262,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <Separator orientation="vertical" className="h-5 mx-1"/>
             </>
         )}
-        {activeTool === 'eraser' && (
-            <>
-            <div className="flex items-center gap-1">
-                <Label htmlFor="brush-size" className="text-xs">Tamanho:</Label>
-                <Slider
-                    id="brush-size"
-                    min={5}
-                    max={100}
-                    step={1}
-                    value={[eraserSize]}
-                    onValueChange={(value) => setEraserSize(value[0])}
-                    className="w-20"
-                />
-            </div>
-            <Separator orientation="vertical" className="h-5 mx-1"/>
-            </>
-        )}
         <div className="flex items-center gap-1">
             <Label className="text-xs">Zoom:</Label>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
@@ -307,14 +270,14 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <span className="text-xs font-mono w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
         </div>
         <Separator orientation="vertical" className="h-5 mx-1"/>
-        <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleClearAnnotations}>
-          <Trash2 className="w-4 h-4" />
-          <span className="sr-only">Limpar todas as anotações</span>
+        <Button variant="outline" size="sm" className="h-8 px-2" onClick={handleClearAnnotations}>
+          <Trash2 className="mr-1 h-4 w-4" />
+          <span className="text-xs">Limpar anotações</span>
         </Button>
       </div>
 
       <div className="w-full flex-1 overflow-auto border bg-muted">
-        <div className="flex justify-center items-start min-h-full p-4">
+        <div className="flex justify-center items-center min-h-full p-4">
             <canvas
                 ref={canvasRef}
                 onMouseDown={isDrawingMode ? startDrawing : undefined}
