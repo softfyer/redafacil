@@ -514,7 +514,6 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <Label className="text-xs">Zoom:</Label>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.max(0.2, z - 0.1))}><ZoomOut className="w-4 h-4" /></Button>
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(z => Math.min(3, z + 0.1))}><ZoomIn className="w-4 h-4" /></Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoomLevel(0.5)}><Redo2 className="w-4 h-4" /> <span className="sr-only">Reset Zoom</span></Button>
             <span className="text-xs font-mono w-10 text-center">{(zoomLevel * 100).toFixed(0)}%</span>
         </div>
         <Separator orientation="vertical" className="h-5 mx-1"/>
@@ -531,9 +530,9 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             <audio ref={audioPlayerRef} onEnded={() => setIsPlaying(false)} className="hidden" />
 
             {!isRecording && !audioBlob && (
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={startRecording}>
-                    <Mic className="h-4 w-4" />
-                    <span className="sr-only">Iniciar gravação</span>
+                <Button variant="outline" size="sm" className="h-8 px-2" onClick={startRecording}>
+                    <Mic className="mr-1 h-4 w-4" />
+                    <span className="text-xs">Gravar Áudio</span>
                 </Button>
             )}
 
