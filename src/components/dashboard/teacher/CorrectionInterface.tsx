@@ -45,6 +45,15 @@ const getMimeTypeFromUrl = (url: string | undefined): 'image/jpeg' | 'image/png'
     }
 };
 
+// Helper to create a clean and safe filename
+const createCleanFilename = (title: string, suffix: string, url: string): string => {
+    if (!url) return '';
+    const extensionMatch = url.match(/\.([0-9a-z]+)(?:[\?#]|$)/i);
+    const extension = extensionMatch ? extensionMatch[1] : 'file';
+    const sanitizedTitle = title.replace(/[^a-z0-9\s-]/gi, '').replace(/\s+/g, '_').toLowerCase();
+    return `${sanitizedTitle}_${suffix}.${extension}`;
+};
+
 
 type CorrectionInterfaceProps = {
   essay: Essay & { studentName: string };
@@ -68,6 +77,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
   const originalMimeType = getMimeTypeFromUrl(essay.fileUrl);
 
   const gradeFinal = (gradeContent ?? 0) + (gradeStructure ?? 0);
+  const originalFilename = createCleanFilename(essay.title, 'original', essay.fileUrl);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -218,7 +228,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
               
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
-                <a href={essay.fileUrl} target="_blank" rel="noopener noreferrer">
+                <a href={`/api/download?url=${encodeURIComponent(essay.fileUrl)}&filename=${encodeURIComponent(originalFilename)}`} download={originalFilename}>
                   <Download className="mr-2 h-4 w-4" />
                   Baixar Redação Original
                 </a>
@@ -227,22 +237,26 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
 
             <Separator />
 
-            <div className="space-y-2">
-                <Label htmlFor="corrected-file" className="font-bold text-base">
-                    1. Redação Corrigida (Anexar ou Anotar)
-                </Label>
+            <div className="space-y-4">
+                <div>
+                    <h3 className="font-bold text-base">1. Redação Corrigida</h3>
+                    <p className="text-sm text-muted-foreground">Corrija a redação na plataforma ou envie um arquivo corrigido.</p>
+                </div>
+                
                 {isImageUrl(essay.fileUrl) && (
                     <Button variant="outline" onClick={() => setIsAnnotationModalOpen(true)} disabled={isLoading} className="w-full">
                         <Edit className="mr-2 h-4 w-4" />
-                        Anotar na Imagem da Redação
+                        Corrigir Redação
                     </Button>
                 )}
-                {annotatedImageBlob ? (
-                    <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
-                        Uma imagem com anotações já foi salva e será enviada.
-                    </div>
-                ) : (
-                    <>
+
+                <div className="space-y-2">
+                    <Label htmlFor="corrected-file">Anexar redação corrigida</Label>
+                    {annotatedImageBlob ? (
+                        <div className="p-3 border rounded-md bg-green-50 dark:bg-green-900/20 text-sm text-green-700 dark:text-green-300">
+                            Uma imagem com anotações já foi salva e será enviada.
+                        </div>
+                    ) : (
                         <Input 
                             id="corrected-file" 
                             type="file" 
@@ -251,11 +265,11 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
                             disabled={isLoading}
                             accept=".pdf,.doc,.docx,.png,.jpg"
                         />
-                        <p className="text-xs text-muted-foreground">
-                            {isImageUrl(essay.fileUrl) ? "Ou anexe um arquivo com suas marcações (PDF, Word, etc.)." : "Anexe o arquivo com suas marcações (PDF, Word, etc.)."}
-                        </p>
-                    </>
-                )}
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                        Formatos aceitos: PDF, DOCX, PNG, JPG.
+                    </p>
+                </div>
             </div>
 
             <div className="space-y-2">
