@@ -257,7 +257,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
         </Button>
       </div>
 
-      <div className="w-full flex-1 overflow-auto border bg-muted">
+      <div className="w-full flex-1 overflow-auto border bg-muted flex justify-center">
         <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}
@@ -268,7 +268,7 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
             className={cn(
-                "origin-top-left",
+                "origin-top",
                 isDrawingMode ? "cursor-crosshair" : "cursor-grab"
             )}
             style={{ 
