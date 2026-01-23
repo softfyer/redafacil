@@ -120,7 +120,7 @@ export function CorrectionViewer({ isOpen, onOpenChange, essay }: CorrectionView
         <DialogFooter className="flex-shrink-0 flex-col sm:flex-row sm:justify-start gap-2 pt-4">
             {essay.fileUrl && (
                 <a href={`/api/download?url=${encodeURIComponent(essay.fileUrl)}&filename=${encodeURIComponent(originalFilename)}`} download={originalFilename} className="w-full sm:w-auto">
-                    <Button type="button" variant="secondary" className="w-full">
+                    <Button type="button" variant="default" className="w-full">
                         <Download className="mr-2 h-4 w-4" />
                         Baixar Arquivo Original
                     </Button>

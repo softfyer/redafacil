@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move, Trash2, Mic, Square } from 'lucide-react';
+import { ZoomIn, ZoomOut, Redo2, Pen, Undo2, Move, Trash2, Mic, Square, Play, Pause } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,8 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
 
   const colors = ['#FF0000', '#0000FF', '#000000', '#FFFF00', '#00FF00'];
@@ -149,6 +151,17 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
   useEffect(() => {
     redrawCanvas();
   }, [strokes, redrawCanvas]);
+
+  // Effect to set up audio player
+  useEffect(() => {
+    if (audioBlob && audioPlayerRef.current) {
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayerRef.current.src = audioUrl;
+        return () => {
+            URL.revokeObjectURL(audioUrl);
+        };
+    }
+  }, [audioBlob]);
 
   const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
     const { x, y } = getCoordinates(event);
@@ -295,12 +308,23 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
     }
   };
 
-  const toggleRecording = () => {
-      if (isRecording) {
-          stopRecording();
-      } else {
-          startRecording();
+  const handlePlayPause = () => {
+    if (isPlaying) {
+        audioPlayerRef.current?.pause();
+        setIsPlaying(false);
+    } else {
+        audioPlayerRef.current?.play();
+        setIsPlaying(true);
+    }
+  };
+
+  const handleRerecord = () => {
+      if (isPlaying) {
+          audioPlayerRef.current?.pause();
+          setIsPlaying(false);
       }
+      onAudioChange(null);
+      toast({ title: 'Gravação anterior apagada.', description: 'Você pode gravar um novo áudio.' });
   };
   
   // --- MOUSE EVENT HANDLERS ---
@@ -503,10 +527,36 @@ const AnnotationCanvas = React.forwardRef<AnnotationCanvasActions, AnnotationCan
           <span className="text-xs">Limpar Tudo</span>
         </Button>
         <Separator orientation="vertical" className="h-5 mx-1"/>
-        <Button variant={isRecording ? "destructive" : "outline"} size="icon" className="h-8 w-8" onClick={toggleRecording}>
-          {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          <span className="sr-only">{isRecording ? 'Parar gravação' : 'Iniciar gravação'}</span>
-        </Button>
+        <div className="flex items-center gap-1">
+            <audio ref={audioPlayerRef} onEnded={() => setIsPlaying(false)} className="hidden" />
+
+            {!isRecording && !audioBlob && (
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={startRecording}>
+                    <Mic className="h-4 w-4" />
+                    <span className="sr-only">Iniciar gravação</span>
+                </Button>
+            )}
+
+            {isRecording && (
+                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={stopRecording}>
+                    <Square className="h-4 w-4" />
+                    <span className="sr-only">Parar gravação</span>
+                </Button>
+            )}
+
+            {!isRecording && audioBlob && (
+                <>
+                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={handlePlayPause}>
+                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        <span className="sr-only">{isPlaying ? 'Pausar' : 'Reproduzir'}</span>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleRerecord}>
+                       <Trash2 className="mr-1 h-4 w-4" />
+                       Regravar
+                    </Button>
+                </>
+            )}
+        </div>
       </div>
 
       <div ref={scrollContainerRef} className="w-full flex-1 overflow-auto border bg-muted text-center p-4 relative">

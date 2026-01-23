@@ -227,7 +227,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
               </div>
               
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="secondary">
+              <Button asChild variant="default">
                 <a href={`/api/download?url=${encodeURIComponent(essay.fileUrl)}&filename=${encodeURIComponent(originalFilename)}`} download={originalFilename}>
                   <Download className="mr-2 h-4 w-4" />
                   Baixar Redação Original
@@ -240,7 +240,7 @@ export function CorrectionInterface({ essay, onCorrectionSubmit, onBack }: Corre
             <div className="space-y-4">
                 <div>
                     <h3 className="font-bold text-base">1. Redação Corrigida</h3>
-                    <p className="text-sm text-muted-foreground">Corrija a redação ou envie um arquivo corrigido</p>
+                    <p className="text-sm text-muted-foreground">Corrija a redação na plataforma ou envie um arquivo corrigido</p>
                 </div>
                 
                 {isImageUrl(essay.fileUrl) && (
