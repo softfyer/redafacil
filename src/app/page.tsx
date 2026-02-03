@@ -18,6 +18,7 @@ export default function Home() {
   const { isLoading } = useUser();
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-landing');
   const profImage = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
+  const youtubeImage = PlaceHolderImages.find((img) => img.id === 'youtube-promo');
 
   // While checking auth state, show a loading skeleton to prevent flashes of content
   if (isLoading) {
@@ -244,19 +245,32 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center animate-in fade-in delay-800 duration-500">
-            <div className="max-w-3xl mx-auto">
-                <Youtube className="mx-auto h-16 w-16 text-primary mb-6" />
-                <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">Fique por dentro das melhores dicas</h3>
-                <p className="text-muted-foreground mt-4 text-lg mb-8">
-                    Acompanhe nosso canal no YouTube para temas, análises e dicas de redação que vão te ajudar a chegar na nota máxima.
-                </p>
-                <Button size="lg" asChild>
-                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
-                        <Youtube className="mr-2 h-5 w-5" />
-                        Acessar Canal
-                    </a>
-                </Button>
+        <section className="bg-muted dark:bg-card py-20 md:py-32 animate-in fade-in delay-800 duration-500">
+            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-8 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:px-8">
+                <div className="text-center md:text-left">
+                    <Youtube className="mx-auto md:mx-0 h-16 w-16 text-primary mb-6" />
+                    <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">Fique por dentro das melhores dicas</h3>
+                    <p className="text-muted-foreground mt-4 text-lg mb-8">
+                        Acompanhe nosso canal no YouTube para temas, análises e dicas de redação que vão te ajudar a chegar na nota máxima.
+                    </p>
+                    <Button size="lg" asChild>
+                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
+                            <Youtube className="mr-2 h-5 w-5" />
+                            Acessar Canal
+                        </a>
+                    </Button>
+                </div>
+                 {youtubeImage && (
+                  <div className="relative order-first md:order-last mx-auto aspect-video w-full overflow-hidden rounded-2xl shadow-lg">
+                    <Image
+                      src={youtubeImage.imageUrl}
+                      alt={youtubeImage.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={youtubeImage.imageHint}
+                    />
+                  </div>
+                )}
             </div>
         </section>
       </main>
