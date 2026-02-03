@@ -7,6 +7,18 @@
       "imageHint": "student writing"
     },
     {
+      "id": "hero-carousel-2",
+      "description": "A close-up of a handwritten essay with corrections marked in red pen.",
+      "imageUrl": "https://images.unsplash.com/photo-1544980944-59c25f15a133?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoYW5kd3JpdHRlbiUyMGVzc2F5fGVufDB8fHx8MTY4MTM5ODg1OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handwritten essay"
+    },
+    {
+      "id": "hero-carousel-3",
+      "description": "A diverse group of students collaborating together with laptops in a bright, modern space.",
+      "imageUrl": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdHVkZW50cyUyMGNvbGxhYm9yYXRpbmd8ZW58MHx8fHwxNjgxMzk4OTIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "students collaborating"
+    },
+    {
       "id": "user-avatar-1",
       "description": "Avatar for a user.",
       "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3Njc1MTExMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",

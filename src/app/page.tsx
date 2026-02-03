@@ -11,11 +11,15 @@ import { useRedirectIfAuthenticated } from '@/hooks/useRedirectIfAuthenticated';
 import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import * as React from 'react';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 export default function Home() {
   useRedirectIfAuthenticated();
   const { isLoading } = useUser();
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-landing');
+  const carouselImages = PlaceHolderImages.filter(
+      (img) => img.id.startsWith('hero-')
+  );
 
   // While checking auth state, show a loading skeleton to prevent flashes of content
   if (isLoading) {
@@ -63,7 +67,7 @@ export default function Home() {
 
       <main className="flex-1">
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
             <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 font-headline">
               Eleve sua escrita a um novo patamar.
             </h2>
@@ -76,23 +80,34 @@ export default function Home() {
           </div>
         </section>
 
-        {heroImage && (
-          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src={heroImage.imageUrl}
-                alt={heroImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={heroImage.imageHint}
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            </div>
-          </section>
-        )}
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <Carousel 
+                opts={{ loop: true }}
+                className="w-full"
+            >
+              <CarouselContent>
+                {carouselImages.map((image) => (
+                  <CarouselItem key={image.id}>
+                    <div className="relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
+                        <Image
+                            src={image.imageUrl}
+                            alt={image.description}
+                            fill
+                            className="object-cover"
+                            data-ai-hint={image.imageHint}
+                            priority={image.id === 'hero-landing'}
+                        />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4"/>
+            </Carousel>
+        </section>
 
-        <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+        <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 animate-in fade-in delay-200 duration-500">
           <div className="text-center mb-12">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
               Como funciona?
@@ -160,7 +175,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-muted dark:bg-card py-20 md:py-32">
+        <section className="bg-muted dark:bg-card py-20 md:py-32 animate-in fade-in delay-400 duration-500">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
                     <GraduationCap className="w-10 h-10" />
@@ -169,12 +184,12 @@ export default function Home() {
                     Professores Especializados
                 </h3>
                 <p className="text-muted-foreground mt-4 text-lg">
-                    Nossa banca de correção é composta por profissionais reais que já trabalharam em correções de vestibulares de universidades como UniCesumar, UniFamma, UEM, UFPR e UNICAMP.
+                    Nossa banca de correção é composta por profissionais reais que já trabalharam em correções de vestibulares e diversos concursos.
                 </p>
             </div>
         </section>
 
-        <section id="plans" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+        <section id="plans" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 animate-in fade-in delay-600 duration-500">
           <div className="text-center mb-12">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
               Planos de Créditos
