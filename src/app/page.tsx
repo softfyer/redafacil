@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Feather, Award, UploadCloud } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { CheckCircle, Feather, Award, UploadCloud, CreditCard, ShoppingBag, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -10,6 +10,7 @@ import { ClientOnly } from '@/components/ui/client-only';
 import { useRedirectIfAuthenticated } from '@/hooks/useRedirectIfAuthenticated';
 import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
   useRedirectIfAuthenticated();
@@ -91,7 +92,7 @@ export default function Home() {
           </section>
         )}
 
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+        <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="text-center mb-12">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
               Como funciona?
@@ -100,13 +101,29 @@ export default function Home() {
               Um processo simples e eficaz para aprimorar suas habilidades de escrita.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card className="text-center">
+              <CardHeader>
+                <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
+                  <CreditCard className="w-8 h-8" />
+                </div>
+                <CardTitle className="mt-4">1. Compre Créditos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Adquira créditos para submeter suas redações. Cada crédito vale uma correção.
+                </p>
+                 <Button variant="link" asChild className="mt-2">
+                    <Link href="#plans">Ver planos</Link>
+                </Button>
+              </CardContent>
+            </Card>
             <Card className="text-center">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <UploadCloud className="w-8 h-8" />
                 </div>
-                <CardTitle className="mt-4">1. Envie sua Redação</CardTitle>
+                <CardTitle className="mt-4">2. Envie sua Redação</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -119,7 +136,7 @@ export default function Home() {
                 <div className="mx-auto bg-accent/10 text-accent p-3 rounded-full w-fit">
                   <CheckCircle className="w-8 h-8" />
                 </div>
-                <CardTitle className="mt-4">2. Receba a Correção</CardTitle>
+                <CardTitle className="mt-4">3. Receba a Correção</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -132,13 +149,82 @@ export default function Home() {
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <Award className="w-8 h-8" />
                 </div>
-                <CardTitle className="mt-4">3. Evolua e Conquiste</CardTitle>
+                <CardTitle className="mt-4">4. Evolua e Conquiste</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
                   Use o feedback para evoluir e alcançar a excelência em seus próximos textos.
                 </p>
               </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="bg-muted dark:bg-card py-20 md:py-32">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
+                <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
+                    <GraduationCap className="w-10 h-10" />
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
+                    Professores Especializados
+                </h3>
+                <p className="text-muted-foreground mt-4 text-lg">
+                    Nossa banca de correção é composta por profissionais reais que já trabalharam em correções de vestibulares de universidades como UniCesumar, UniFamma, UEM, UFPR e UNICAMP.
+                </p>
+            </div>
+        </section>
+
+        <section id="plans" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
+              Planos de Créditos
+            </h3>
+            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+              Cada crédito permite a você ter a correção de uma redação. Escolha o plano ideal para você.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <Card className="flex flex-col text-center">
+              <CardHeader>
+                <CardTitle className="text-2xl">1 Crédito</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-5xl font-extrabold mb-2">R$ 19,90</p>
+              </CardContent>
+              <CardFooter className="flex-col">
+                <Button className="w-full">
+                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                </Button>
+              </CardFooter>
+            </Card>
+            <Card className="flex flex-col text-center border-2 border-primary shadow-lg relative">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Popular</Badge>
+              <CardHeader>
+                <CardTitle className="text-2xl">3 Créditos</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-5xl font-extrabold mb-2">R$ 49,90</p>
+                <p className="text-muted-foreground">Economize 15%</p>
+              </CardContent>
+              <CardFooter className="flex-col">
+                <Button className="w-full">
+                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                </Button>
+              </CardFooter>
+            </Card>
+            <Card className="flex flex-col text-center">
+              <CardHeader>
+                <CardTitle className="text-2xl">5 Créditos</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-5xl font-extrabold mb-2">R$ 74,90</p>
+                <p className="text-muted-foreground">Economize 25%</p>
+              </CardContent>
+              <CardFooter className="flex-col">
+                <Button className="w-full">
+                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         </section>
