@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { CheckCircle, Feather, Award, UploadCloud, CreditCard, ShoppingBag, GraduationCap } from 'lucide-react';
+import { CheckCircle, Feather, Award, UploadCloud, CreditCard, ShoppingBag, GraduationCap, Youtube } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -12,14 +12,12 @@ import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import * as React from 'react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 export default function Home() {
   useRedirectIfAuthenticated();
   const { isLoading } = useUser();
-  const carouselImages = PlaceHolderImages.filter(
-      (img) => img.id.startsWith('hero-')
-  );
+  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-landing');
+  const profImage = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
 
   // While checking auth state, show a loading skeleton to prevent flashes of content
   if (isLoading) {
@@ -81,30 +79,19 @@ export default function Home() {
         </section>
 
         <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <Carousel 
-                opts={{ loop: true }}
-                className="w-full"
-            >
-              <CarouselContent>
-                {carouselImages.map((image) => (
-                  <CarouselItem key={image.id}>
-                    <div className="relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
-                        <Image
-                            src={image.imageUrl}
-                            alt={image.description}
-                            fill
-                            className="object-cover"
-                            data-ai-hint={image.imageHint}
-                            priority={image.id === 'hero-landing'}
-                        />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-4" />
-              <CarouselNext className="right-4"/>
-            </Carousel>
+            {heroImage && (
+                <div className="relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
+                    <Image
+                        src={heroImage.imageUrl}
+                        alt={heroImage.description}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={heroImage.imageHint}
+                        priority
+                    />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
+            )}
         </section>
 
         <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 animate-in fade-in delay-200 duration-500">
@@ -117,7 +104,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center">
+            <Card className="text-center transition-transform duration-300 hover:scale-105">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <CreditCard className="w-8 h-8" />
@@ -133,7 +120,7 @@ export default function Home() {
                 </Button>
               </CardContent>
             </Card>
-            <Card className="text-center">
+            <Card className="text-center transition-transform duration-300 hover:scale-105">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <UploadCloud className="w-8 h-8" />
@@ -146,7 +133,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="text-center">
+            <Card className="text-center transition-transform duration-300 hover:scale-105">
               <CardHeader>
                 <div className="mx-auto bg-accent/10 text-accent p-3 rounded-full w-fit">
                   <CheckCircle className="w-8 h-8" />
@@ -159,7 +146,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="text-center">
+            <Card className="text-center transition-transform duration-300 hover:scale-105">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <Award className="w-8 h-8" />
@@ -176,16 +163,29 @@ export default function Home() {
         </section>
 
         <section className="bg-muted dark:bg-card py-20 md:py-32 animate-in fade-in delay-400 duration-500">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
-                <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
+            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-8 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:px-8">
+                {profImage && (
+                  <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl shadow-lg">
+                    <Image
+                      src={profImage.imageUrl}
+                      alt={profImage.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={profImage.imageHint}
+                    />
+                  </div>
+                )}
+                <div className="text-center md:text-left">
+                  <div className="mx-auto md:mx-0 bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
                     <GraduationCap className="w-10 h-10" />
-                </div>
-                <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
+                  </div>
+                  <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
                     Professores Especializados
-                </h3>
-                <p className="text-muted-foreground mt-4 text-lg">
+                  </h3>
+                  <p className="text-muted-foreground mt-4 text-lg">
                     Nossa banca de correção é composta por profissionais reais que já trabalharam em correções de vestibulares e diversos concursos.
-                </p>
+                  </p>
+                </div>
             </div>
         </section>
 
@@ -242,6 +242,22 @@ export default function Home() {
               </CardFooter>
             </Card>
           </div>
+        </section>
+
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center animate-in fade-in delay-800 duration-500">
+            <div className="max-w-3xl mx-auto">
+                <Youtube className="mx-auto h-16 w-16 text-primary mb-6" />
+                <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">Fique por dentro das melhores dicas</h3>
+                <p className="text-muted-foreground mt-4 text-lg mb-8">
+                    Acompanhe nosso canal no YouTube para temas, análises e dicas de redação que vão te ajudar a chegar na nota máxima.
+                </p>
+                <Button size="lg" asChild>
+                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
+                        <Youtube className="mr-2 h-5 w-5" />
+                        Acessar Canal
+                    </a>
+                </Button>
+            </div>
         </section>
       </main>
 
