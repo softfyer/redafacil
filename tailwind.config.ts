@@ -108,6 +108,15 @@ export default {
             transform: 'translateX(calc(100% + 1rem))',
           },
         },
+        // Typewriter animation
+        typewriter: {
+          from: { width: '0' },
+          to: { width: '100%' },
+        },
+        blink: {
+          'from, to': { borderColor: 'transparent' },
+          '50%': { borderColor: 'hsl(var(--primary))' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -115,6 +124,8 @@ export default {
         'toast-hide': 'toast-hide 100ms ease-in forwards',
         'toast-slide-in-right': 'toast-slide-in-right 150ms cubic-bezier(0.16, 1, 0.3, 1)',
         'toast-swipe-out-right': 'toast-swipe-out-right 100ms ease-out forwards',
+        // Typewriter animation
+        typing: 'typewriter 3.5s steps(40, end) 1s 1 forwards, blink .75s step-end infinite',
       },
     },
   },

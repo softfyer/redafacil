@@ -13,12 +13,53 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import * as React from 'react';
 
+// A simple hook for Intersection Observer
+const useAnimateOnScroll = <T extends HTMLElement>(
+  options?: IntersectionObserverInit
+): [React.RefObject<T>, boolean] => {
+  const ref = React.useRef<T>(null);
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      // Set to true if the element is intersecting
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        // We can unobserve the element after it has become visible
+        if (ref.current) {
+          observer.unobserve(ref.current);
+        }
+      }
+    }, options);
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [options]);
+
+  return [ref, isVisible];
+};
+
+
 export default function Home() {
   useRedirectIfAuthenticated();
   const { isLoading } = useUser();
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero-landing');
   const profImage = PlaceHolderImages.find((img) => img.id === 'user-avatar-1');
   const youtubeImage = PlaceHolderImages.find((img) => img.id === 'youtube-promo');
+
+  // Animation hooks
+  const [howItWorksRef, isHowItWorksVisible] = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 });
+  const [professorsRef, isProfessorsVisible] = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 });
+  const [plansRef, isPlansVisible] = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 });
+  const [youtubeRef, isYoutubeVisible] = useAnimateOnScroll<HTMLElement>({ threshold: 0.1 });
 
   // While checking auth state, show a loading skeleton to prevent flashes of content
   if (isLoading) {
@@ -65,9 +106,25 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
+        {/* SVG pattern for decorative backgrounds */}
+        <svg width="0" height="0" className="absolute">
+          <defs>
+            <pattern
+              id="pattern-circles"
+              x="0"
+              y="0"
+              width="20"
+              height="20"
+              patternUnits="userSpaceOnUse"
+            >
+              <circle cx="4" cy="4" r="1.5" className="text-primary/10" fill="currentColor" />
+            </pattern>
+          </defs>
+        </svg>
+
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 text-center">
           <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
-            <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 font-headline">
+            <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 font-headline w-max max-w-full mx-auto animate-typing overflow-hidden whitespace-nowrap border-r-4 border-r-transparent">
               Eleve sua escrita a um novo patamar.
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground mb-8">
@@ -81,12 +138,12 @@ export default function Home() {
 
         <section className="container mx-auto px-4 sm:px-6 lg:px-8">
             {heroImage && (
-                <div className="relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
+                <div className="group relative aspect-[16/9] md:aspect-[2/1] rounded-2xl overflow-hidden shadow-2xl">
                     <Image
                         src={heroImage.imageUrl}
                         alt={heroImage.description}
                         fill
-                        className="object-cover"
+                        className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
                         data-ai-hint={heroImage.imageHint}
                         priority
                     />
@@ -95,7 +152,11 @@ export default function Home() {
             )}
         </section>
 
-        <section id="how-it-works" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 animate-in fade-in delay-200 duration-500">
+        <section 
+          id="how-it-works"
+          ref={howItWorksRef}
+          className={`container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 transition-opacity duration-700 ease-in ${isHowItWorksVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
           <div className="text-center mb-12">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
               Como funciona?
@@ -105,7 +166,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="text-center transition-transform duration-300 hover:scale-105">
+            <Card className="text-center transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:border-primary">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <CreditCard className="w-8 h-8" />
@@ -121,7 +182,7 @@ export default function Home() {
                 </Button>
               </CardContent>
             </Card>
-            <Card className="text-center transition-transform duration-300 hover:scale-105">
+            <Card className="text-center transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:border-primary">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <UploadCloud className="w-8 h-8" />
@@ -134,7 +195,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="text-center transition-transform duration-300 hover:scale-105">
+            <Card className="text-center transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:border-primary">
               <CardHeader>
                 <div className="mx-auto bg-accent/10 text-accent p-3 rounded-full w-fit">
                   <CheckCircle className="w-8 h-8" />
@@ -147,7 +208,7 @@ export default function Home() {
                 </p>
               </CardContent>
             </Card>
-            <Card className="text-center transition-transform duration-300 hover:scale-105">
+            <Card className="text-center transition-transform duration-300 hover:scale-105 hover:shadow-lg hover:border-primary">
               <CardHeader>
                 <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                   <Award className="w-8 h-8" />
@@ -163,19 +224,34 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-muted dark:bg-card py-20 md:py-32 animate-in fade-in delay-400 duration-500">
-            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-8 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:px-8">
-                {profImage && (
-                  <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl shadow-lg">
-                    <Image
-                      src={profImage.imageUrl}
-                      alt={profImage.description}
-                      fill
-                      className="object-cover"
-                      data-ai-hint={profImage.imageHint}
-                    />
-                  </div>
-                )}
+        <section
+          ref={professorsRef}
+          className={`bg-muted dark:bg-card py-20 md:py-32 transition-opacity duration-700 ease-in ${isProfessorsVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-12 px-4 sm:px-6 md:grid-cols-2 lg:px-8">
+                <div className="relative group">
+                    <svg
+                      className="hidden lg:block absolute -top-8 -left-8 w-full h-full transition-transform duration-500 ease-in-out group-hover:rotate-[-3deg]"
+                      width="404"
+                      height="505"
+                      viewBox="0 0 404 505"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <rect width="404" height="505" className="rounded-2xl" fill="url(#pattern-circles)" />
+                    </svg>
+                    {profImage && (
+                      <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-2xl shadow-lg">
+                        <Image
+                          src={profImage.imageUrl}
+                          alt={profImage.description}
+                          fill
+                          className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                          data-ai-hint={profImage.imageHint}
+                        />
+                      </div>
+                    )}
+                </div>
                 <div className="text-center md:text-left">
                   <div className="mx-auto md:mx-0 bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
                     <GraduationCap className="w-10 h-10" />
@@ -190,7 +266,11 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="plans" className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 animate-in fade-in delay-600 duration-500">
+        <section
+          id="plans"
+          ref={plansRef}
+          className={`container mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 transition-opacity duration-700 ease-in ${isPlansVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
           <div className="text-center mb-12">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
               Planos de Créditos
@@ -200,7 +280,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="flex flex-col text-center">
+            <Card className="flex flex-col text-center transition-shadow duration-300 hover:shadow-xl">
               <CardHeader>
                 <CardTitle className="text-2xl">1 Crédito</CardTitle>
               </CardHeader>
@@ -213,7 +293,7 @@ export default function Home() {
                 </Button>
               </CardFooter>
             </Card>
-            <Card className="flex flex-col text-center border-2 border-primary shadow-lg relative">
+            <Card className="flex flex-col text-center border-2 border-primary shadow-lg relative transition-shadow duration-300 hover:shadow-primary/40">
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Popular</Badge>
               <CardHeader>
                 <CardTitle className="text-2xl">3 Créditos</CardTitle>
@@ -228,7 +308,7 @@ export default function Home() {
                 </Button>
               </CardFooter>
             </Card>
-            <Card className="flex flex-col text-center">
+            <Card className="flex flex-col text-center transition-shadow duration-300 hover:shadow-xl">
               <CardHeader>
                 <CardTitle className="text-2xl">5 Créditos</CardTitle>
               </CardHeader>
@@ -245,8 +325,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="bg-muted dark:bg-card py-20 md:py-32 animate-in fade-in delay-800 duration-500">
-            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-8 px-4 sm:px-6 md:grid-cols-2 md:gap-12 lg:px-8">
+        <section
+          ref={youtubeRef}
+          className={`bg-muted dark:bg-card py-20 md:py-32 transition-opacity duration-700 ease-in ${isYoutubeVisible ? 'opacity-100' : 'opacity-0'}`}
+        >
+            <div className="container mx-auto grid max-w-5xl grid-cols-1 items-center gap-12 px-4 sm:px-6 md:grid-cols-2 lg:px-8">
                 <div className="text-center md:text-left">
                     <Youtube className="mx-auto md:mx-0 h-16 w-16 text-primary mb-6" />
                     <h3 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">Fique por dentro das melhores dicas</h3>
@@ -260,17 +343,29 @@ export default function Home() {
                         </a>
                     </Button>
                 </div>
-                 {youtubeImage && (
-                  <div className="relative order-first md:order-last mx-auto aspect-video w-full overflow-hidden rounded-2xl shadow-lg">
-                    <Image
-                      src={youtubeImage.imageUrl}
-                      alt={youtubeImage.description}
-                      fill
-                      className="object-cover"
-                      data-ai-hint={youtubeImage.imageHint}
-                    />
-                  </div>
-                )}
+                 <div className="relative group order-first md:order-last">
+                    <svg
+                      className="hidden lg:block absolute -top-8 -right-8 w-full h-full transition-transform duration-500 ease-in-out group-hover:rotate-[3deg]"
+                      width="576"
+                      height="324"
+                      viewBox="0 0 576 324"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <rect width="576" height="324" className="rounded-2xl" fill="url(#pattern-circles)" />
+                    </svg>
+                    {youtubeImage && (
+                      <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl shadow-lg">
+                        <Image
+                          src={youtubeImage.imageUrl}
+                          alt={youtubeImage.description}
+                          fill
+                          className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                          data-ai-hint={youtubeImage.imageHint}
+                        />
+                      </div>
+                    )}
+                 </div>
             </div>
         </section>
       </main>
