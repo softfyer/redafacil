@@ -29,6 +29,7 @@ import { auth, db } from '@/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
+import { DeleteAccountSettings } from '@/components/dashboard/student/DeleteAccountSettings';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter no mínimo 2 caracteres.' }),
@@ -76,7 +77,7 @@ export default function SettingsPage() {
         const userDocRef = doc(db, `${userRole}s`, user.uid);
         await updateDoc(userDocRef, { name: values.name });
         
-        refreshUserData(); // Refresh the user data in the context
+        refreshUserData();
 
         toast({
             title: 'Perfil atualizado!',
@@ -226,6 +227,14 @@ export default function SettingsPage() {
                         </div>
                     </form>
                 </Form>
+            </CardContent>
+        </Card>
+
+        <Separator />
+
+        <Card className="border-orange-600">
+            <CardContent className="pt-6">
+                <DeleteAccountSettings />
             </CardContent>
         </Card>
     </div>

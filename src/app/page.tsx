@@ -288,8 +288,10 @@ export default function Home() {
                 <p className="text-5xl font-extrabold mb-2">R$ 19,90</p>
               </CardContent>
               <CardFooter className="flex-col">
-                <Button className="w-full">
-                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                <Button className="w-full" asChild>
+                  <Link href="/register">
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -303,8 +305,10 @@ export default function Home() {
                 <p className="text-muted-foreground">Economize 15%</p>
               </CardContent>
               <CardFooter className="flex-col">
-                <Button className="w-full">
-                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                <Button className="w-full" asChild>
+                  <Link href="/register">
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -317,8 +321,10 @@ export default function Home() {
                 <p className="text-muted-foreground">Economize 25%</p>
               </CardContent>
               <CardFooter className="flex-col">
-                <Button className="w-full">
-                  <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                <Button className="w-full" asChild>
+                  <Link href="/register">
+                    <ShoppingBag className="mr-2 h-4 w-4" /> Comprar
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
