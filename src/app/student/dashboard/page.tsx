@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { StudentEssayList } from '@/components/dashboard/student/StudentEssayList';
 import { getEssaysByStudent, Essay } from '@/lib/services/essayService';
-import { FilePlus2, Loader2, Youtube } from 'lucide-react';
+import { FilePlus2, Loader2, Coins } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EssaySubmissionWizard } from '@/components/dashboard/student/EssaySubmissionWizard';
 import { CorrectionViewer } from '@/components/dashboard/student/CorrectionViewer';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useUser } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 
 export default function StudentDashboard() {
@@ -18,20 +17,9 @@ export default function StudentDashboard() {
   const [essays, setEssays] = useState<Essay[]>([]);
   const { toast } = useToast();
   const [selectedEssay, setSelectedEssay] = useState<Essay | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { user, userData, refreshUserData } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
-      } else {
-        router.push('/login');
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
 
   const fetchEssays = useCallback(async (studentId: string) => {
     setIsLoading(true);
@@ -51,14 +39,18 @@ export default function StudentDashboard() {
   }, [toast]);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchEssays(currentUser.uid);
+    if (user) {
+        fetchEssays(user.uid);
+    } else if (user === null) {
+        router.push('/login');
     }
-  }, [currentUser, fetchEssays]);
+  }, [user, router, fetchEssays]);
 
   const handleNewEssayClick = () => {
-    setSelectedEssay(null);
-    setIsWizardOpen(true);
+    if (((userData as any)?.credits ?? 0) > 0) {
+        setSelectedEssay(null);
+        setIsWizardOpen(true);
+    }
   };
 
   const handleEssayActionClick = (essay: Essay) => {
@@ -71,8 +63,9 @@ export default function StudentDashboard() {
   };
 
   const handleDataChange = () => {
-    if (currentUser) {
-      fetchEssays(currentUser.uid);
+    if (user) {
+        fetchEssays(user.uid);
+        refreshUserData(); // Refresh user data in context to update credits in header
     }
     setIsWizardOpen(false);
     setIsCorrectionViewerOpen(false);
@@ -85,7 +78,7 @@ export default function StudentDashboard() {
       setIsWizardOpen(isOpen);
   };
 
-  if (!currentUser) {
+  if (isLoading && essays.length === 0) {
     return (
         <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -93,20 +86,29 @@ export default function StudentDashboard() {
     )
   }
 
+  const userCredits = (userData as any)?.credits ?? 0;
+
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
       <div className="space-y-8">
-        <div>
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-              <h2 className="text-xl font-bold tracking-tight">Minhas Redações</h2>
-              <Button onClick={handleNewEssayClick}>
-                  <FilePlus2 className="mr-2 h-4 w-4" />
-                  Enviar Nova Redação
-              </Button>
-          </div>
-          <p className="text-muted-foreground mt-1">
-              Envie sua redação para receber correções detalhadas.
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+                <h2 className="text-xl font-bold tracking-tight">Minhas Redações</h2>
+                <p className="text-muted-foreground mt-1">
+                    Envie sua redação para receber correções detalhadas.
+                </p>
+            </div>
+            {userCredits > 0 ? (
+                <Button onClick={handleNewEssayClick}>
+                    <FilePlus2 className="mr-2 h-4 w-4" />
+                    Enviar Nova Redação
+                </Button>
+            ) : (
+                <Button onClick={() => router.push('/student/buy-credits')}>
+                    <Coins className="mr-2 h-4 w-4" />
+                    Comprar Créditos
+                </Button>
+            )}
         </div>
 
         {isLoading && essays.length === 0 ? (

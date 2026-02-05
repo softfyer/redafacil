@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,10 +14,11 @@ import type { Essay } from '@/lib/services/essayService';
 import { addEssay, updateEssay } from '@/lib/services/essayService';
 import { uploadEssayFile } from '@/lib/services/storageService';
 import { createEssayNotification } from '@/lib/services/notificationService';
-import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUser } from '@/contexts/UserContext';
+import { studentService } from '@/lib/services/studentService';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/png", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
@@ -53,7 +55,6 @@ const editFormSchema = baseSchema.extend({
     )
 });
 
-
 type EssaySubmissionWizardProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -76,6 +77,7 @@ const getFileNameFromUrl = (url: string) => {
 export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, essayToEdit }: EssaySubmissionWizardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useUser();
   const isEditing = !!essayToEdit;
 
   const currentSchema = isEditing ? editFormSchema : formSchema;
@@ -109,7 +111,6 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
 
   const handleFormSubmit = async (values: z.infer<typeof currentSchema>) => {
     setIsLoading(true);
-    const user = auth.currentUser;
 
     if (!user) {
       toast({ title: 'Erro de Autenticação', description: 'Usuário não encontrado. Faça login novamente.', variant: 'destructive' });
@@ -142,11 +143,10 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
             };
 
             await updateEssay(essayDataToUpdate, newFileUrl, oldFileUrl);
-            
-            // Cria uma notificação para o professor sobre o reenvio
+            await studentService.removeCredit(user.uid, 1);
             await createEssayNotification(essayDataToUpdate.title, essayDataToUpdate.id!);
 
-            toast({ title: 'Redação reenviada com sucesso!', description: 'Suas alterações foram salvas e a redação está novamente na fila para correção.' });
+            toast({ title: 'Redação reenviada com sucesso!', description: 'Suas alterações foram salvas e um crédito foi utilizado.' });
 
         } else {
             // --- CREATING NEW ESSAY LOGIC ---
@@ -176,10 +176,10 @@ export function EssaySubmissionWizard({ isOpen, onOpenChange, onSubmitSuccess, e
                 fileUrl: newFileUrl,
             };
             await updateEssay(finalEssayData);
-
+            await studentService.removeCredit(user.uid, 1);
             await createEssayNotification(finalEssayData.title, essayId);
 
-            toast({ title: 'Redação enviada com sucesso!', description: 'Aguarde a correção do professor.' });
+            toast({ title: 'Redação enviada com sucesso!', description: 'Um crédito foi utilizado. Aguarde a correção.' });
         }
       
       onSubmitSuccess();

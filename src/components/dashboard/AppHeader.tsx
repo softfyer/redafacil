@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, User, Sun, Moon, Trash2, Youtube, Settings } from 'lucide-react';
+import { Bell, LogOut, Sun, Moon, Trash2, Youtube, Settings, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -18,8 +18,9 @@ import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { studentService } from '@/lib/services/studentService';
 
-// A specific component for notifications, to keep the main header clean
+
 const TeacherNotifications = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const { toast } = useToast();
@@ -99,10 +100,30 @@ const TeacherNotifications = () => {
     );
 }
 
+const StudentCreditDisplay = () => {
+    const { user, userData } = useUser();
+    const router = useRouter();
+    const credits = (userData as any)?.credits ?? 0;
+
+    if (!user || !userData) return null;
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 h-9">
+                <span className="font-semibold text-lg text-primary">{credits}</span>
+                <span className="text-sm text-muted-foreground">{credits === 1 ? 'crédito' : 'créditos'}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => router.push('/student/buy-credits')}>
+                <Coins className="mr-2 h-4 w-4" />
+                Comprar
+            </Button>
+        </div>
+    );
+}
+
 export default function AppHeader({ title }: { title: string }) {
-  const { userData, userRole } = useUser();
+  const { user, userData, userRole } = useUser();
   const router = useRouter();
-  
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
@@ -147,12 +168,15 @@ export default function AppHeader({ title }: { title: string }) {
           <ClientOnly>
             {userRole === 'teacher' && <TeacherNotifications />}
             {userRole === 'student' && (
-                <Button variant="outline" size="sm" asChild>
-                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
-                        <Youtube className="mr-2 h-4 w-4" />
-                        Suporte
-                    </a>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <StudentCreditDisplay />
+                    <Button variant="outline" size="sm" asChild>
+                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer">
+                            <Youtube className="mr-2 h-4 w-4" />
+                            Suporte
+                        </a>
+                    </Button>
+                </div>
             )}
           </ClientOnly>
 
