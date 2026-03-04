@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase'; // Importa o 'auth' do firebase
+import { format } from 'date-fns';
+
 import AppHeader from '@/components/dashboard/AppHeader';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,131 +16,148 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { useUser } from '@/contexts/UserContext';
-import { getPaymentsByUserId, type Payment } from '@/lib/services/paymentService';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
 
-const PaymentsListSkeleton = () => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Produto</TableHead>
-        <TableHead className="hidden sm:table-cell">Status</TableHead>
-        <TableHead className="hidden md:table-cell">Data</TableHead>
-        <TableHead className="text-right">ID do Pagamento</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {[...Array(3)].map((_, i) => (
-        <TableRow key={i}>
-          <TableCell>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-20 mt-1" />
-          </TableCell>
-          <TableCell className="hidden sm:table-cell">
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </TableCell>
-          <TableCell className="hidden md:table-cell">
-            <Skeleton className="h-5 w-24" />
-          </TableCell>
-          <TableCell className="text-right">
-            <Skeleton className="h-4 w-40 ml-auto" />
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-);
+interface Payment {
+  id: string;
+  productName: string;
+  credits: number;
+  amount: number;
+  status: 'completed' | 'pending' | 'failed';
+  createdAt: any; 
+  paymentIntentId: string | { [key: string]: any };
+}
 
-export default function PaymentsPage() {
-  const { user } = useUser();
+const PaymentsPage = () => {
+  const [user, setUser] = useState<User | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    // Observador para o estado de autenticação
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe(); // Limpa o observador ao desmontar
+  }, []);
 
+  useEffect(() => {
     const fetchPayments = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        setLoading(true);
-        const userPayments = await getPaymentsByUserId(user.uid);
-        setPayments(userPayments);
-        setError(null);
+        const q = query(
+          collection(db, 'payments'),
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const paymentsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Payment, 'id'>),
+        }));
+        setPayments(paymentsData);
       } catch (err) {
-        console.error('Failed to fetch payments:', err);
-        setError('Não foi possível carregar o histórico de pagamentos.');
+        console.error("Error fetching payments: ", err);
+        setError('Falha ao carregar o histórico de pagamentos.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPayments();
-  }, [user?.uid]);
+    if (user) {
+        fetchPayments();
+    } else {
+        // Se o usuário não estiver logado após a verificação inicial, paramos o loading.
+        setLoading(false);
+    }
+  }, [user]);
+
+  const renderSkeleton = () => (
+    <TableRow>
+      <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+      <TableCell><Skeleton className="h-5 w-10" /></TableCell>
+      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+      <TableCell className="text-right"><Skeleton className="h-5 w-32" /></TableCell>
+    </TableRow>
+  );
+
+  const getPaymentIntentIdString = (intentId: string | { [key: string]: any }): string => {
+    if (typeof intentId === 'string') {
+      return intentId;
+    }
+    if (intentId && typeof intentId === 'object' && 'id' in intentId) {
+      return (intentId as { id: string }).id;
+    }
+    return 'ID Inválido';
+  };
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <AppHeader title="Meus Pagamentos" />
-      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 md:p-10">
         <Card>
-          <CardHeader className="px-7">
+          <CardHeader>
             <CardTitle>Histórico de Compras</CardTitle>
-            <CardDescription>
-              Aqui está o histórico de todas as suas compras de créditos.
-            </CardDescription>
+            <CardDescription>Aqui está a lista de todas as suas transações.</CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <PaymentsListSkeleton />
-            ) : error ? (
-              <div className="text-center py-10 text-red-500">{error}</div>
-            ) : payments.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                Você ainda não fez nenhuma compra.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Créditos</TableHead>
+                  <TableHead>Valor (R$)</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="text-right">ID da Transação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <>
+                    {renderSkeleton()}
+                    {renderSkeleton()}
+                    {renderSkeleton()}
+                  </>
+                ) : error ? (
                   <TableRow>
-                    <TableHead>Produto</TableHead>
-                    <TableHead className="hidden sm:table-cell">Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Data</TableHead>
-                    <TableHead className="text-right">ID do Pagamento</TableHead>
+                    <TableCell colSpan={5} className="text-center text-red-500">{error}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment) => (
+                ) : user && payments.length > 0 ? (
+                  payments.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell>
                         <div className="font-medium">{payment.productName}</div>
-                        <div className="hidden text-sm text-muted-foreground md:inline">
-                          {payment.amount.toLocaleString('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                          })}
-                        </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <Badge className="text-xs" variant="outline">
-                          {payment.status === 'completed' ? 'Concluído' : 'Pendente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {format(payment.createdAt.toDate(), 'dd/MM/yyyy')}
+                      <TableCell>{payment.credits}</TableCell>
+                      <TableCell>{(payment.amount).toFixed(2)}</TableCell>
+                      <TableCell>
+                        {payment.createdAt && format(payment.createdAt.toDate(), 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                        {payment.paymentIntentId}
+                        {getPaymentIntentIdString(payment.paymentIntentId)}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      {user ? 'Nenhum pagamento encontrado.' : 'Por favor, faça login para ver seus pagamentos.'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </main>
     </div>
   );
-}
+};
+
+export default PaymentsPage;
