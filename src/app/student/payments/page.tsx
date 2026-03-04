@@ -1,7 +1,7 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
+import AppHeader from '@/components/dashboard/AppHeader';
 import {
   Card,
   CardContent,
@@ -82,61 +82,66 @@ export default function PaymentsPage() {
   }, [user?.uid]);
 
   return (
-    <Card>
-      <CardHeader className="px-7">
-        <CardTitle>Meus Pagamentos</CardTitle>
-        <CardDescription>
-          Histórico de todas as suas compras de créditos.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <PaymentsListSkeleton />
-        ) : error ? (
-          <div className="text-center py-10 text-red-500">{error}</div>
-        ) : payments.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">
-            Você ainda não fez nenhuma compra.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produto</TableHead>
-                <TableHead className="hidden sm:table-cell">Status</TableHead>
-                <TableHead className="hidden md:table-cell">Data</TableHead>
-                <TableHead className="text-right">ID do Pagamento</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell>
-                    <div className="font-medium">{payment.productName}</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                       {payment.amount.toLocaleString('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge className="text-xs" variant="outline">
-                       {payment.status === 'completed' ? 'Concluído' : 'Pendente'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                     {format(payment.createdAt.toDate(), 'dd/MM/yyyy')}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                    {payment.paymentIntentId}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+      <AppHeader title="Meus Pagamentos" />
+      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <Card>
+          <CardHeader className="px-7">
+            <CardTitle>Histórico de Compras</CardTitle>
+            <CardDescription>
+              Aqui está o histórico de todas as suas compras de créditos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <PaymentsListSkeleton />
+            ) : error ? (
+              <div className="text-center py-10 text-red-500">{error}</div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                Você ainda não fez nenhuma compra.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Data</TableHead>
+                    <TableHead className="text-right">ID do Pagamento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>
+                        <div className="font-medium">{payment.productName}</div>
+                        <div className="hidden text-sm text-muted-foreground md:inline">
+                          {payment.amount.toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge className="text-xs" variant="outline">
+                          {payment.status === 'completed' ? 'Concluído' : 'Pendente'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {format(payment.createdAt.toDate(), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        {payment.paymentIntentId}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }
