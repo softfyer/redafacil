@@ -1,142 +1,145 @@
-"use client";
 
-import { useRouter } from "next/navigation";
-import { useUser } from "@/contexts/UserContext";
-import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import { Loader2, Gem } from "lucide-react";
-import AppHeader from "@/components/dashboard/AppHeader";
-import { Button } from "@/components/ui/button";
-import { loadStripe } from '@stripe/stripe-js';
+'use client';
 
-// Make sure to call `loadStripe` outside of a component’s render to avoid
-// recreating the `Stripe` object on every render.
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
+import { useState, useEffect } from 'react';
+import { useUser } from '@/contexts/UserContext';
+import AppHeader from '@/components/dashboard/AppHeader';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 interface Product {
   id: string;
-  unit_amount: number;
+  unit_amount: number | null;
   product: {
     name: string;
-    description: string;
+    description: string | null;
   };
 }
 
 export default function BuyCreditsPage() {
-  const router = useRouter();
-  const { user, refreshUserData } = useUser();
-  const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const { user } = useUser();
 
   useEffect(() => {
-    if (user === null) {
-      router.push('/login');
-    }
-  }, [user, router]);
-
-  useEffect(() => {
-    async function getProducts() {
+    async function fetchProducts() {
+      setLoading(true);
       try {
-        setLoading(true);
         const response = await fetch('/api/stripe');
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch products');
+        }
+
         const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Erro ao buscar produtos:", error);
-        toast({
-          title: "Erro ao buscar produtos",
-          description: "Não foi possível carregar os produtos. Tente novamente mais tarde.",
-          variant: "destructive",
-        });
+        const validProducts = data.filter(
+          (p: any) => p.unit_amount && p.product.name
+        );
+        setProducts(validProducts);
+        setError(null);
+      } catch (err: any) {
+        console.error('Failed to fetch products:', err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     }
-    getProducts();
-  }, [toast]);
+
+    fetchProducts();
+  }, []);
 
   const handleCheckout = async (priceId: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error('User is not authenticated');
+      return;
+    }
+
+    setCheckoutLoading(priceId);
     try {
-      setLoading(true);
       const response = await fetch('/api/stripe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId: priceId, userId: user.uid }),
       });
 
-      const { id } = await response.json();
-      const stripe = await stripePromise;
-      if (stripe) {
-        const { error } = await stripe.redirectToCheckout({ sessionId: id });
-        if (error) {
-            throw new Error(error.message)
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
       }
-    } catch (error) {
-      console.error("Erro ao realizar checkout:", error);
-      toast({
-        title: "Erro ao realizar checkout",
-        description: "Não foi possível iniciar o processo de pagamento. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setError(err.message);
+      setCheckoutLoading(null);
     }
   };
-
-
-  if (user === undefined) {
-    return (
-      <div className="flex flex-col h-screen">
-        <AppHeader title="Comprar Créditos" />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen">
       <AppHeader title="Comprar Créditos" />
-      <main className="flex-1 flex flex-col justify-center items-center p-4 text-center">
-        <Gem className="h-12 w-12 text-primary mb-4" />
-        <h1 className="text-3xl font-bold tracking-tight">Créditos para Correção</h1>
-        <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-          Adquira créditos para receber correções detalhadas em suas redações.
-        </p>
-
-        {loading && (
-          <div className="flex items-center justify-center mt-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <main className="flex-1 p-4 md:p-8">
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500">
+            <p>Ocorreu um erro ao carregar os produtos:</p>
+            <p className="font-mono text-sm bg-red-100 p-2 rounded mt-2">{error}</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {products.map((product) => (
+              <Card key={product.id}>
+                <CardHeader>
+                  <CardTitle>{product.product.name}</CardTitle>
+                  {product.product.description && (
+                    <CardDescription>
+                      {product.product.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">
+                    {(product.unit_amount! / 100).toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    onClick={() => handleCheckout(product.id)}
+                    disabled={!!checkoutLoading}
+                    className="w-full"
+                  >
+                    {checkoutLoading === product.id ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
+                    Comprar Agora
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         )}
-
-        <div className="w-full max-w-4xl mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <div key={product.id} className="p-6 bg-card rounded-xl border shadow-lg flex flex-col">
-              <div className="mb-4">
-                <p className="text-xl font-bold text-primary">{product.product.name}</p>
-                <p className="text-sm text-muted-foreground">{product.product.description}</p>
-              </div>
-              <div className="my-6">
-                <p className="text-4xl font-extrabold">R$ {(product.unit_amount / 100).toFixed(2).replace('.', ',')}</p>
-                <p className="text-xs text-muted-foreground mt-1">Pagamento único</p>
-              </div>
-              <Button onClick={() => handleCheckout(product.id)} disabled={loading} className="w-full mt-auto">
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Comprar Crédito
-              </Button>
-            </div>
-          ))}
-        </div>
       </main>
     </div>
   );
 }
+
