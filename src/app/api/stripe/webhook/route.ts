@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { studentService } from '@/lib/services/studentService';
+import { createPayment } from '@/lib/services/paymentService';
+import { Timestamp } from 'firebase/firestore';
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature');
@@ -22,6 +24,7 @@ export async function POST(req: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err: any) {
+    console.error('Webhook signature verification failed.', err.message);
     return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
@@ -30,37 +33,60 @@ export async function POST(req: NextRequest) {
     case 'checkout.session.completed':
       const session = event.data.object as Stripe.Checkout.Session;
 
-      if (!session?.metadata?.userId || !session.line_items) {
-        console.error('Missing metadata or line items from session');
-        return new NextResponse('Missing metadata or line items', {
-          status: 400,
-        });
+      const userId = session?.metadata?.userId;
+      const paymentIntentId = session.payment_intent as string;
+
+      if (!userId || !paymentIntentId) {
+        console.error(
+          'Missing userId or paymentIntentId from session metadata'
+        );
+        return new NextResponse('Missing required session data', { status: 400 });
       }
-
-      const lineItems = await stripe.checkout.sessions.listLineItems(
-        session.id,
-        {
-          expand: ['data.price.product'],
-        }
-      );
-
-      if (!lineItems) {
-        console.error('Could not get line items from session');
-        return new NextResponse('Could not get line items', { status: 400 });
-      }
-
-      const creditsToAdd = lineItems.data.reduce((acc, item) => {
-        const product = item.price?.product as Stripe.Product;
-        const credits = parseInt(product.metadata.credits || '0', 10);
-        return acc + credits * (item.quantity || 1);
-      }, 0);
 
       try {
-        await studentService.addCredit(session.metadata.userId, creditsToAdd);
-      } catch (error) {
-        console.error(`Failed to add credit to user ${session.metadata.userId}`);
-        return new NextResponse(
-          `Failed to add credit to user ${session.metadata.userId}`,
+        const lineItems = await stripe.checkout.sessions.listLineItems(
+          session.id,
+          {
+            expand: ['data.price.product'],
+          }
+        );
+
+        if (!lineItems || lineItems.data.length === 0) {
+          throw new Error('Could not retrieve line items from session');
+        }
+
+        let totalCredits = 0;
+
+        // Process each item in the checkout
+        for (const item of lineItems.data) {
+          const product = item.price?.product as Stripe.Product;
+          const credits = parseInt(product?.metadata.credits || '0', 10);
+          const quantity = item.quantity || 1;
+          const creditsToAdd = credits * quantity;
+          totalCredits += creditsToAdd;
+
+          await createPayment({
+            userId,
+            productId: product.id,
+            productName: product.name,
+            amount: item.amount_total / 100, // Amount is in cents
+            credits: creditsToAdd,
+            paymentIntentId,
+            status: 'completed',
+            createdAt: Timestamp.now(),
+          });
+        }
+
+        // Add the total calculated credits to the student's account
+        if (totalCredits > 0) {
+          await studentService.addCredit(userId, totalCredits);
+        } else {
+            console.warn("Checkout session completed with 0 credits to add.")
+        }
+
+      } catch (error: any) {
+        console.error('Error processing checkout session:', error);
+        return new NextResponse(`Internal Server Error: ${error.message}`,
           { status: 500 }
         );
       }

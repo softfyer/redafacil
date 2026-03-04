@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, LogOut, Sun, Moon, Trash2, Youtube, Settings, Coins } from 'lucide-react';
+import { Bell, LogOut, Sun, Moon, Trash2, Youtube, Settings, Coins, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -199,6 +199,14 @@ export default function AppHeader({ title }: { title: string }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                 {userRole === 'student' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/student/payments">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>Meus Pagamentos</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href={settingsPath}>
                     <Settings className="mr-2 h-4 w-4" />
