@@ -13,7 +13,7 @@ const RETRY_DELAY = 1000; // 1 segundo
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<{ paymentId: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,13 +45,12 @@ function SuccessContent() {
         }
 
         const data = await response.json();
-        setSessionData(data);
+        setPaymentData(data);
         setError(null);
       } catch (err: any) {
         setError(err.message);
       } finally {
-        // Only stop loading if we are not retrying
-        if (!error || attempts >= MAX_RETRIES) {
+        if (attempts >= MAX_RETRIES || !error) {
            setLoading(false);
         }
       }
@@ -86,9 +85,9 @@ function SuccessContent() {
               <p className="text-gray-300">
                 Seus créditos já foram adicionados via webhook, mas esta página confirma os detalhes da transação.
               </p>
-              {sessionData && (
+              {paymentData?.paymentId && (
                  <div className="text-sm text-gray-400 mt-4 border-t pt-4 border-gray-700">
-                    <p>ID da Transação: {sessionData.id}</p>
+                    <p>ID do Pagamento: {paymentData.paymentId}</p>
                  </div>
               )}
             </div>
