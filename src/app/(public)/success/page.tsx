@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -62,8 +61,8 @@ function SuccessContent() {
   }, [sessionId]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md mx-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-950">
+      <Card className="w-full max-w-lg mx-4 bg-gray-950 text-white">
         <CardHeader className="text-center">
            {!loading && !error && <CardTitle className="text-2xl">Pagamento Aprovado!</CardTitle>}
            {!loading && error && <CardTitle className="text-2xl">Falha na Verificação</CardTitle>}
@@ -77,18 +76,18 @@ function SuccessContent() {
           ) : error ? (
             <div className="text-center">
                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <p className="text-red-600">Ocorreu um erro:</p>
-              <p className="font-mono text-sm bg-red-100 p-2 rounded mt-2">{error}</p>
+              <p className="text-red-500">Ocorreu um erro:</p>
+              <p className="font-mono text-sm bg-red-100 p-2 rounded mt-2 text-red-900">{error}</p>
             </div>
           ) : (
             <div className="text-center">
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
               <p className="text-lg mb-2">Obrigado pela sua compra!</p>
-              <p className="text-gray-600">
+              <p className="text-gray-300">
                 Seus créditos já foram adicionados via webhook, mas esta página confirma os detalhes da transação.
               </p>
               {sessionData && (
-                 <div className="text-sm text-gray-500 mt-4 border-t pt-4">
+                 <div className="text-sm text-gray-400 mt-4 border-t pt-4 border-gray-700">
                     <p>ID da Transação: {sessionData.id}</p>
                  </div>
               )}
@@ -105,7 +104,7 @@ function SuccessContent() {
 
 export default function SuccessPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-950 text-white">Carregando...</div>}>
             <SuccessContent />
         </Suspense>
     )

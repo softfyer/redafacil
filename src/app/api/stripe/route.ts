@@ -28,8 +28,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Dinamicamente obtém a URL de origem da requisição
-    const origin = req.nextUrl.origin;
+    // A fonte de verdade para a URL da aplicação agora é a variável de ambiente.
+    // Isso é crucial para ambientes atrás de um proxy, como o Cloud Workstations.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    if (!appUrl) {
+      throw new Error('A variável de ambiente NEXT_PUBLIC_APP_URL não está definida.');
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -40,9 +45,9 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'payment',
-      // Usa a origem dinâmica para as URLs de sucesso e cancelamento
-      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/failure`,
+      // Usa a URL base da variável de ambiente para construir os links.
+      success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/failure`,
       metadata: {
         userId: userId,
       },
