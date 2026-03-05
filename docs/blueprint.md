@@ -18,3 +18,6 @@
 - Simple and clear icons to represent different actions and statuses.
 - Mobile-first, responsive design to ensure accessibility on all devices.
 - Subtle transitions and animations to provide feedback and improve user experience.
+
+
+- Commit atual buscando resolver o problema de build relacionado ao app hosting
