@@ -6,11 +6,13 @@ import AppHeader from '@/components/dashboard/AppHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CircleCheck, CircleX, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/contexts/UserContext';
 
 const SuccessPageContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const session_id = searchParams.get('session_id');
+  const { refreshUserData } = useUser();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Validando seu pagamento, por favor, aguarde...');
@@ -30,7 +32,6 @@ const SuccessPageContent = () => {
           body: JSON.stringify({ session_id }),
         });
 
-        // Verifica se a resposta é JSON antes de tentar fazer o parse
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.indexOf('application/json') !== -1) {
           const data = await response.json();
@@ -39,8 +40,8 @@ const SuccessPageContent = () => {
           }
           setStatus('success');
           setMessage(data.message || 'Pagamento confirmado e créditos adicionados!');
+          refreshUserData();
         } else {
-          // Se não for JSON, é um erro inesperado do servidor (provavelmente HTML)
           const errorText = await response.text();
           console.error("Server Error Response:", errorText);
           throw new Error('Ocorreu um erro inesperado no servidor. A resposta não era JSON.');
@@ -48,7 +49,6 @@ const SuccessPageContent = () => {
 
       } catch (error: any) {
         setStatus('error');
-        // Mostra uma mensagem mais amigável para o usuário
         setMessage(error.message.includes('inesperado') 
           ? 'Houve um problema de comunicação com o servidor. Por favor, contate o suporte se seus créditos não aparecerem em breve.'
           : error.message
@@ -57,7 +57,7 @@ const SuccessPageContent = () => {
     };
 
     validatePayment();
-  }, [session_id]);
+  }, [session_id, refreshUserData]);
 
   const renderIcon = () => {
     switch (status) {
@@ -83,11 +83,11 @@ const SuccessPageContent = () => {
           </CardHeader>
           {status !== 'loading' && (
             <CardContent className="flex flex-col items-center gap-4">
-              <Button onClick={() => router.push('/student/dashboard')} className="w-full">
+              <Button onClick={() => router.replace('/student/dashboard')} className="w-full">
                 Ir para o Painel
               </Button>
               {status === 'success' && (
-                 <Button onClick={() => router.push('/student/payments')} className="w-full" variant="outline">
+                 <Button onClick={() => router.replace('/student/payments')} className="w-full" variant="outline">
                     Ver Meus Pagamentos
                 </Button>
               )}

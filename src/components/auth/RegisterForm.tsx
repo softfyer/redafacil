@@ -28,6 +28,7 @@ import { useState } from 'react';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { addStudent } from '@/lib/services/studentService';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'O nome deve ter no mínimo 2 caracteres.' }),
@@ -41,6 +42,7 @@ const formSchema = z.object({
 
 export function RegisterForm() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -60,28 +62,19 @@ export function RegisterForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
       const user = userCredential.user;
-
-      // 2. Send the verification email
       await sendEmailVerification(user);
-
-      // 3. Create the student document in Firestore
       await addStudent({
         uid: user.uid,
         name: values.name,
         email: values.email,
       });
-
-      // 4. Sign the user out to prevent automatic login state
       await signOut(auth);
-
-      // 5. Show success screen
       setSubmittedEmail(values.email);
       setIsSubmitted(true);
 
@@ -89,6 +82,10 @@ export function RegisterForm() {
       let message = 'Ocorreu um erro ao criar a conta. Tente novamente.';
       if (error.code === 'auth/email-already-in-use') {
         message = 'Este email já está em uso por outra conta.';
+      } else if (error.code === 'auth/weak-password') {
+        message = 'A senha é muito fraca. Por favor, escolha uma senha mais segura.';
+      } else if (error.code === 'auth/invalid-email') {
+        message = 'O formato do email é inválido.';
       }
       toast({
         title: 'Erro no cadastro',
@@ -119,8 +116,8 @@ export function RegisterForm() {
                 </p>
             </CardContent>
             <CardFooter>
-                <Button className="w-full" asChild>
-                    <Link href="/login">Ir para o Login</Link>
+                <Button className="w-full" onClick={() => router.replace('/login')}>
+                    Ir para o Login
                 </Button>
             </CardFooter>
         </Card>

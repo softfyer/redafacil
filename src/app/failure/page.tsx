@@ -22,7 +22,7 @@ export default function FailurePage() {
           feita. Por favor, tente novamente.
         </p>
         <Button
-          onClick={() => router.push('/student/buy-credits')}
+          onClick={() => router.replace('/student/buy-credits')}
           className="mt-8"
           variant="outline"
         >
