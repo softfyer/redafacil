@@ -20,4 +20,4 @@
 - Subtle transitions and animations to provide feedback and improve user experience.
 
 
-- Commit atual buscando resolver o problema de build relacionado ao app hosting
+- Commit atual buscando resolver problema de rota com o dominio proprio e autenticação com o firebase config

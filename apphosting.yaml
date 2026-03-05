@@ -14,7 +14,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
-    value: "https://redafacil.com.br/"
+    value: "https://redafacil.com.br"
     availability:
       - BUILD
       - RUNTIME
