@@ -1,7 +1,13 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+
 runConfig:
+  # Increase this value if you'd like to automatically spin up
+  # more instances in response to increased traffic.
   maxInstances: 1
 
-environmentVariables:
+# Environment variables available to your application at build and runtime.
+env:
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     value: "pk_test_51SxBQyLjEo5DVV75LI39BFHkkACotKLEzoBHjfg7VCfbkk61FDRNFJZu5e2bWFtSt36B8bLrwQxiR65sREbFvB6o00JVLItld8"
     availability:
